@@ -10,7 +10,7 @@ My attempt at making an ammo display that works well with Beatrun.
 ## To be done
 Just check the Issues tab, will ya?
 
-![image of the Issues tab](images\checkissues.png)
+![image of the Issues tab](images/checkissues.png)
 <br>*No, seriously, check Issues. Please. It saves me so much time.*
 
 ## Credits
