@@ -1,7 +1,7 @@
---This is my attempt at making a one-line ammo counter HUD that fits Beatrun well.
+--This is my attempt at making a one-file ammo counter HUD that fits Beatrun well.
 --I wanna kill myself for making this thing.
 
---Uses some ARC9 code.
+--Uses some ARC9 code. See line 167 for details.
 local hidden = CreateClientConVar("funniammocounter_hide", "0", true, false, "Blocks the funni ammo counter I made from rendering", 0, 2)
 local sway = CreateClientConVar("funniamocounter_sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("funniammocounter_dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
