@@ -5,6 +5,7 @@
 local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
+local showspeed = CreateClientConVar("PKAmmoDisp_Speedometer", "0", true, false, "Show a speedometer at the bottom of the display", 0, 1)
 
 local hide = {
     CHudAmmo = true,
@@ -130,20 +131,48 @@ local function funnihud()
     
 
     local playervel = ply:GetVelocity():Length2D()
-    surface.SetDrawColor(128, 128, 128, 96)
-    surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 1 * scale)
-    if playervel <= 300 then -- "Wonderful" bar-style speedometer, as shown in some early Beatrun videos.
-        surface.SetDrawColor(128, 128, 128, 146)
-        surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.965 + vp.x, playervel * scale, 4 * scale)
-    elseif playervel > 300 and playervel <= 700 then
-        surface.SetDrawColor(220, 154, 13, 147)
-        surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.964 + vp.x, playervel * scale, 6 * scale)
-    elseif playervel > 700 and playervel < 900 then
-        surface.SetDrawColor(210, 155, 36, 192)
-        surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.963 + vp.x, playervel * scale, 8 * scale)
-    elseif playervel >= 900 then
-        surface.SetDrawColor(252, 202, 95)
-        surface.DrawRect(scrw * 0.5 + vp.z - 900 / 2, scrh * 0.963 + vp.x, 900 * scale, 8 * scale)
+    local roundvel = math.Round(ply:GetVelocity():Length2D())
+    local speedtext = math.Round(ply:GetVelocity():Length2D() * 0.06858125) .. " km/h"
+    local spedtext = roundvel .. " u/s (" .. speedtext .. ")"
+    local spedw = nil
+
+    if showspeed:GetBool() then
+        surface.SetDrawColor(128, 128, 128, 96)
+        surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 1 * scale)
+        local drawcolor = nil
+        if playervel <= 300 then -- "Wonderful" bar-style speedometer, as shown in some early Beatrun videos.
+            surface.SetDrawColor(128, 128, 128, 146)
+            surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.965 + vp.x, playervel * scale, 4 * scale)
+            surface.SetTextColor(128, 128, 128, 146)
+            surface.SetFont("funnitextbeeg")
+            local spedw = surface.GetTextSize(spedtext)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2), scrh * 0.947)
+            surface.DrawText(spedtext)
+        elseif playervel > 300 and playervel <= 700 then
+            surface.SetDrawColor(220, 154, 13, 147)
+            surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.964 + vp.x, playervel * scale, 6 * scale)
+            surface.SetTextColor(220, 154, 13, 147)
+            surface.SetFont("funnitextbeeg")
+            local spedw = surface.GetTextSize(spedtext)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2), scrh * 0.947)
+            surface.DrawText(spedtext)
+        elseif playervel > 700 and playervel < 900 then
+            surface.SetDrawColor(210, 155, 36, 192)
+            surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.963 + vp.x, playervel * scale, 8 * scale)
+            surface.SetTextColor(210, 155, 36, 192)
+            surface.SetFont("funnitextbeeg")
+            local spedw = surface.GetTextSize(spedtext)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2), scrh * 0.947)
+            surface.DrawText(spedtext)
+        elseif playervel >= 900 then
+            surface.SetDrawColor(252, 202, 95)
+            surface.DrawRect(scrw * 0.5 + vp.z - 900 / 2, scrh * 0.963 + vp.x, 900 * scale, 8 * scale)
+            surface.SetTextColor(252, 202, 95)
+            surface.SetFont("funnitextbeeg")
+            local spedw = surface.GetTextSize(spedtext)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2), scrh * 0.947)
+            surface.DrawText(spedtext)
+        end
     end
 
     local weapon = ply:GetActiveWeapon()
@@ -412,7 +441,7 @@ local DispSegments = { -- Element alighment helpers, used while debugging
     "0.95",
 }
 
-local debug = CreateClientConVar("PKAmmodisp_Debug", "0", true, false, "Enable some debugging functions\nWARNING: Will cause a lot of Lua errors on death.", 0, 1)
+local debug = CreateClientConVar("PKAmmoDisp_Debug", "0", true, false, "Enable some debugging functions\nWARNING: Will cause a lot of Lua errors on death.", 0, 1)
 
 hook.Add( "HUDPaint", "drawsegment", function( name )
     local scale = ScrH() / 1080
