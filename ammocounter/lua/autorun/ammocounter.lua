@@ -2,10 +2,9 @@
 --I wanna kill myself for making this thing.
 
 --Uses some ARC9 code. See line 167 for details.
-local hidden = CreateClientConVar("funniammocounter_hide", "0", true, false, "Blocks the funni ammo counter I made from rendering", 0, 2)
-local sway = CreateClientConVar("funniamocounter_sway", "1", true, false, "Display HUD swaying", 0, 1)
-local dynamic = CreateClientConVar("funniammocounter_dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
-local alignbias = CreateClientConVar("funniammocounter_rightalign", "0", true, false, "DEBUG: Text right align", 0, 1)
+local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
+local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
+local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
 
 local hide = {
     CHudAmmo = true,
@@ -194,14 +193,14 @@ local function funnihud()
         local magrate2 = ammo2 / weapon:GetMaxClip2()
         local lowamount = weapon:GetMaxClip1() / 3
 
-        CreateClientConVar("funniammocounter_cornercolor", "65 124 174 124", true, false, "Ammo counter corner color.")
-        CreateClientConVar("funniammocounter_ammobarcolor", "85 144 194 200", true, false, "Ammo bar color.")
-        CreateClientConVar("funniammocounter_textcolor", "255 255 255 255", true, false, "Ammo counter text color.")
+        CreateClientConVar("PKAmmoDisp_CornerColor", "65 124 174 124", true, false, "Ammo counter corner color.")
+        CreateClientConVar("PKAmmoDisp_AmmobarColor", "85 144 194 200", true, false, "Ammo bar color.")
+        CreateClientConVar("PKAmmoDisp_TextColor", "255 255 255 255", true, false, "Ammo counter text color.")
         --local ammobarcolor = nil
 
 	    local bgpadding = bgpadw > 200 and bgpadw + 40 or 200
     
-        local corner_color_c = string.ToColor(LocalPlayer():GetInfo("funniammocounter_cornercolor"))
+        local corner_color_c = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_CornerColor"))
         corner_color_c.a = math.Clamp(corner_color_c.a + 50, 0, 255)
         corner_color_c.a = dynamic:GetBool() and math.max(150 - hidealpha, 50) or corner_color_c.a
 
@@ -217,7 +216,7 @@ local function funnihud()
         --print(speedlengthw .. "   " .. speedlengthh)
         local rscrbor = scrw * 0.986
 
-        local text_color = string.ToColor(LocalPlayer():GetInfo("funniammocounter_textcolor"))
+        local text_color = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_TextColor"))
 		text_color.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or text_color.a
 
         surface.SetTextColor(text_color)
@@ -257,7 +256,7 @@ local function funnihud()
             elseif ammo1 ~= -1 then
                 surface.SetDrawColor(10, 50, 50, 100)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
-                surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             end
@@ -286,7 +285,7 @@ local function funnihud()
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 else
-                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
+                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
@@ -329,7 +328,7 @@ local function funnihud()
                 elseif ammo2 ~= -1 then
                     surface.SetDrawColor(10, 50, 50, 100)                    
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
-                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
+                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
@@ -370,7 +369,7 @@ local function funnihud()
                 surface.SetTextPos(rscrbor - txtw + vp.z, scrh * 0.93 + vp.x)
                 surface.DrawText("NO MAGAZINE")
             else
-                surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
                 surface.SetFont("funnitexttiny")
@@ -413,11 +412,14 @@ local DispSegments = { -- Element alighment helpers, used while debugging
     "0.95",
 }
 
-local debug = CreateClientConVar("FunniAmmocounter_Debug", "0", true, false, "Enable some debugging functions", 0, 1)
+local debug = CreateClientConVar("PKAmmodisp_Debug", "0", true, false, "Enable some debugging functions\nWARNING: Will cause a lot of Lua errors on death.", 0, 1)
 
 hook.Add( "HUDPaint", "drawsegment", function( name )
     local scale = ScrH() / 1080
+
     if debug:GetBool() then
+        local weapon = ply:GetActiveWeapon()
+        local ammo1, ammo1mag, ammo2, ammo2mag, hasSecondaryAmmoType = -1, -1, -1, -1, false;
         for i=1,#DispSegments do
             surface.SetDrawColor(255,255,255,255)
             surface.DrawRect(ScrW() * DispSegments[i], 1, 1, ScrH()) 
