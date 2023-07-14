@@ -132,7 +132,7 @@ local function funnihud()
 
     local playervel = ply:GetVelocity():Length2D()
     surface.SetDrawColor(128, 128, 128, 96)
-    surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 4 * scale)
+    surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 1 * scale)
     if playervel <= 300 then -- "Wonderful" bar-style speedometer, as shown in some early Beatrun videos.
         surface.SetDrawColor(128, 128, 128, 146)
         surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.965 + vp.x, playervel * scale, 4 * scale)
@@ -158,17 +158,30 @@ local function funnihud()
         ammo1type = weapon:GetPrimaryAmmoType()
         ammo2type = weapon:GetSecondaryAmmoType()
         max1mag = weapon:GetMaxClip1()
+        maxmag2 = weapon:GetMaxClip2()
         infmag2 = (math.Clamp(ply:GetAmmoCount(weapon:GetPrimaryAmmoType()), 0, 9999))
+        infmag3 = (math.Clamp(ply:GetAmmoCount(weapon:GetSecondaryAmmoType()), 0, 9999))
     end
 
     local melee = false
     local infmag = false
+    local HasAltFire = false
+    local UsesAltMag = 0
 
     if ammo1type == -1 and max1mag <= 0 then -- Taken and modified from ARC9 base, see: https://github.com/HaodongMo/ARC-9/blob/main/lua/arc9/client/cl_hud.lua#L692C1-L695C8
         melee = true
     elseif ammo1type ~= -1 and max1mag <= 0 then
         infmag = true
     end    
+
+    if ammo2type == -1 then
+        HasAltFire = false
+    elseif ammo2type ~= -1 and maxmag2 <= 0 then
+        HasAltFire = true
+    elseif ammo2type ~= -1 and maxmag2 > 0 then
+        HasAltFire = true
+        UsesAltMag = 1
+    end
     
     if (not hidden:GetBool() and ply:IsValid() and ply:Alive() and not melee) then
 		if dynamic:GetBool() then
@@ -178,6 +191,7 @@ local function funnihud()
 		end
 
         local magrate = ammo1 / weapon:GetMaxClip1()
+        local magrate2 = ammo2 / weapon:GetMaxClip2()
         local lowamount = weapon:GetMaxClip1() / 3
 
         CreateClientConVar("funniammocounter_cornercolor", "65 124 174 124", true, false, "Ammo counter corner color.")
@@ -214,7 +228,7 @@ local function funnihud()
             surface.SetFont("funnitextbeeg")
             local resrvw, resrvh = surface.GetTextSize(ammo1mag)
             surface.SetTextPos(rscrbor - resrvw + vp.z, scrh * 0.91 + vp.x)
-            if ammo1mag == 0 then
+            if infmag2 == 0 then
                 surface.SetTextColor(255,0,0,255)
                 surface.DrawText(ammo1mag)
                 surface.SetTextColor(text_color)
@@ -236,25 +250,90 @@ local function funnihud()
 
             if ammo1 ~= -1 and ammo1 < (weapon:GetMaxClip1() / 3) then
                 surface.SetDrawColor(200, 30, 30, 100)
-                surface.DrawRect(scrw * 0.911 + vp.z, scrh * 0.94 + vp.x, 150 * scale, scale * 5)
+                surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
                 surface.SetDrawColor(255, 0, 0, 230)
-                surface.DrawRect(scrw * 0.911 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
+                surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             elseif ammo1 ~= -1 then
                 surface.SetDrawColor(10, 50, 50, 100)
-                surface.DrawRect(scrw * 0.911 + vp.z, scrh * 0.94 + vp.x, 150 * scale, scale * 5)
+                surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
                 surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
-                surface.DrawRect(scrw * 0.911 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
+                surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             end
 
-            surface.SetDrawColor(corner_color_c)
-            surface.DrawRect(scrw * 0.761 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 20 * scale, scale * 85)
-            DrawBlurRect2(scrw * 0.80 + vp.z, scrh * 0.895 + vp.x, scale * 125, scale * 85, math.max(255 - hidealpha, 2))
+            if HasAltFire and UsesAltMag == 0 then
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
+                DrawBlurRect2(scrw * 0.80 + vp.z, scrh * 0.895 + vp.x, scale * 125, scale * 85, math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawOutlinedRect(scrw * 0.80 + vp.z, scrh * 0.895 + vp.x, scale * 125, scale * 85)
+
+                surface.SetFont("funnitexthuge")
+                local mag2w, mag2h = surface.GetTextSize(infmag3)
+                surface.SetTextPos(scrw * 0.86 - mag2w + vp.z, scrh * 0.9 + vp.x)
+                if infmag3 == 0 then
+                    surface.SetTextColor(255,0,0,255)
+                    surface.DrawText(infmag3)
+                    surface.SetTextColor(text_color)
+                    --ammobarcolor = "220 0 0 255"
+                else
+                    surface.DrawText(infmag3)
+                end
+
+                if infmag2 == 0 then
+                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                else
+                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                end
+            elseif HasAltFire and UsesAltMag == 1 then
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 23 * scale, scale * 85)
+                DrawBlurRect2(scrw * 0.788 + vp.z, scrh * 0.895 + vp.x, scale * 149, scale * 85, math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawOutlinedRect(scrw * 0.788 + vp.z, scrh * 0.895 + vp.x, scale * 149, scale * 85)
+
+                surface.SetFont("funnitextbeeg")
+                local resrv2w, resrv2h = surface.GetTextSize(ammo2mag)
+                surface.SetTextPos(scrw * 0.86 - resrv2w + vp.z, scrh * 0.91 + vp.x)
+                if infmag3 == 0 then
+                    surface.SetTextColor(255,0,0,255)
+                    surface.DrawText(ammo2mag)
+                    surface.SetTextColor(text_color)
+                else
+                    surface.DrawText(ammo2mag)
+                end
     
-            surface.SetDrawColor(corner_color_c)
-            surface.DrawOutlinedRect(scrw * 0.80 + vp.z, scrh * 0.895 + vp.x, scale * 125, scale * 85)
-            
+                surface.SetFont("funnitexthuge")
+                local mag2w, mag2h = surface.GetTextSize(ammo2)
+                surface.SetTextPos(scrw * 0.86 - resrv2w - mag2w + vp.z, scrh * 0.9 + vp.x)
+                if ammo2 < weapon:GetMaxClip2() / 3 then
+                    surface.SetTextColor(255,0,0,255)
+                    surface.DrawText(ammo2)
+                    surface.SetTextColor(text_color)
+                    --ammobarcolor = "220 0 0 255"
+                else
+                    surface.DrawText(ammo2)
+                end
+
+                if ammo2 ~= -1 and ammo2 < (weapon:GetMaxClip2() / 3) then
+                    surface.SetDrawColor(200, 30, 30, 100)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
+                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                elseif ammo2 ~= -1 then
+                    surface.SetDrawColor(10, 50, 50, 100)                    
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
+                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                end
+            end
             --print(bgpadding)
         elseif infmag then
             --[[surface.SetFont("funnitextbeeg")
@@ -281,9 +360,9 @@ local function funnihud()
                 surface.DrawText(infmag2)
             end
 
-            if ammo1mag == 0 then
+            if infmag2 == 0 then
                 surface.SetDrawColor(255, 0, 0, 230)
-                surface.DrawRect(scrw * 0.911 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
+                surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
                 surface.SetFont("funnitexttiny")
                 local txtw, txth = surface.GetTextSize("NO MAGAZINE")
@@ -292,7 +371,7 @@ local function funnihud()
                 surface.DrawText("NO MAGAZINE")
             else
                 surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("funniammocounter_ammobarcolor")), math.max(255 - hidealpha, 2))
-                surface.DrawRect(scrw * 0.911 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
+                surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
                 surface.SetFont("funnitexttiny")
                 local txtw, txth = surface.GetTextSize("NO MAGAZINE")
@@ -301,18 +380,6 @@ local function funnihud()
                 surface.DrawText("NO MAGAZINE")
             end
         end
-        surface.SetTextPos(scrw * 0.5 + scale + vp.z, scrh * 0.6 + vp.x) -- Debugging stuff, enable if you're interested.
-        surface.SetFont("funnitexttiny")
-        surface.DrawText("DEBUG: MaxClip1: " .. weapon:GetMaxClip1())
-        surface.SetTextPos(scrw * 0.5 + scale + vp.z, scrh * 0.62 + vp.x)
-        surface.SetFont("funnitexttiny")
-        surface.DrawText("DEBUG: PrimaryAmmoType: " .. weapon:GetPrimaryAmmoType())
-        surface.SetTextPos(scrw * 0.5 + scale + vp.z, scrh * 0.64 + vp.x)
-        surface.SetFont("funnitexttiny")
-        surface.DrawText("DEBUG: MaxClip2: " .. weapon:GetMaxClip2())
-        surface.SetTextPos(scrw * 0.5 + scale + vp.z, scrh * 0.66 + vp.x)
-        surface.SetFont("funnitexttiny")
-        surface.DrawText("DEBUG: SecondaryAmmoType: " .. weapon:GetSecondaryAmmoType())
 
         if melee then
             surface.SetDrawColor(255,255,255,255)
@@ -323,3 +390,53 @@ local function funnihud()
 end
 
 hook.Add("HUDPaint", "funnicounter", funnihud)
+
+local DispSegments = { -- Element alighment helpers, used while debugging
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4",
+    "0.5",
+    "0.6",
+    "0.7",
+    "0.8",
+    "0.9",
+    "0.05",
+    "0.15",
+    "0.25",
+    "0.35",
+    "0.45",
+    "0.55",
+    "0.65",
+    "0.75",
+    "0.85",
+    "0.95",
+}
+
+local debug = CreateClientConVar("FunniAmmocounter_Debug", "0", true, false, "Enable some debugging functions", 0, 1)
+
+hook.Add( "HUDPaint", "drawsegment", function( name )
+    local scale = ScrH() / 1080
+    if debug:GetBool() then
+        for i=1,#DispSegments do
+            surface.SetDrawColor(255,255,255,255)
+            surface.DrawRect(ScrW() * DispSegments[i], 1, 1, ScrH()) 
+            surface.DrawRect(1, ScrH() * DispSegments[i], ScrW(), 1) 
+            surface.SetDrawColor(255,255,255,128)
+            surface.DrawRect(ScrW() * (DispSegments[i] + 0.025), 1, 1, ScrH()) 
+            surface.DrawRect(1, ScrH() * (DispSegments[i] + 0.025), ScrW(), 1) 
+        end
+        surface.SetTextPos(ScrW() * 0.5 + scale, ScrH() * 0.6) -- Debugging stuff, enable if you're interested.
+        surface.SetFont("funnitexttiny")
+        surface.DrawText("DEBUG: MaxClip1: " .. weapon:GetMaxClip1())
+        surface.SetTextPos(ScrW() * 0.5 + scale, ScrH() * 0.62)
+        surface.SetFont("funnitexttiny")
+        surface.DrawText("DEBUG: PrimaryAmmoType: " .. weapon:GetPrimaryAmmoType())
+        surface.SetTextPos(ScrW() * 0.5 + scale, ScrH() * 0.64)
+        surface.SetFont("funnitexttiny")
+        surface.DrawText("DEBUG: MaxClip2: " .. weapon:GetMaxClip2())
+        surface.SetTextPos(ScrW() * 0.5 + scale, ScrH() * 0.66)
+        surface.SetFont("funnitexttiny")
+        surface.DrawText("DEBUG: SecondaryAmmoType: " .. weapon:GetSecondaryAmmoType())
+    end
+end )
