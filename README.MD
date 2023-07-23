@@ -3,6 +3,7 @@ My attempt at making an ammo display that works well with Beatrun.
 
 ## Features
 - Primary ammo display, with viewpunch offset and all
+- Secondary/alt-fire ammo display, with mag-style altfire support
 - Support for mag-less weapons
 - Fully clientside, works with any server that has `sv_allowcslua` allowed
 - (Bonus (kinda):) 2D speedometer at the bottom, similar visually to some old Beatrun videos

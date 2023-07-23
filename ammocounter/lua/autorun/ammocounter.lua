@@ -2,7 +2,7 @@
 --I wanna kill myself for making this thing.
 
 --Uses some ARC9 code. See line 167 for details.
-local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
+local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 1)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
 local showspeed = CreateClientConVar("PKAmmoDisp_Speedometer", "0", true, false, "Show a speedometer at the bottom of the display", 0, 1)
@@ -12,7 +12,8 @@ local hide = {
     CHudSecondaryAmmo = true
 }
 
-hook.Add("HUDShouldDraw", "hidefunnyshit", function(name)
+hook.Add("HUDShouldDraw", "HideDefaultCounter", function(name)
+    if hidden:GetBool() then return end
 	if hide[name] then return false end
 end)
 
@@ -135,42 +136,49 @@ local function funnihud()
     local speedtext = math.Round(ply:GetVelocity():Length2D() * 0.06858125) .. " km/h"
     local spedtext = roundvel .. " u/s (" .. speedtext .. ")"
     local spedw = nil
+    local colorvel = math.Clamp((playervel / 900), 1 / 3, 1)
+    local alphavel = math.Clamp((playervel / 900), 0.7, 1)
 
     if showspeed:GetBool() then
         surface.SetDrawColor(128, 128, 128, 96)
         surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 1 * scale)
         local drawcolor = nil
         if playervel <= 300 then -- "Wonderful" bar-style speedometer, as shown in some early Beatrun videos.
-            surface.SetDrawColor(128, 128, 128, 146)
+            surface.SetDrawColor(73, 73, 73, 201 * alphavel)
             surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.965 + vp.x, playervel * scale, 4 * scale)
-            surface.SetTextColor(128, 128, 128, 146)
+            surface.SetTextColor(73, 73, 73, 201 * alphavel)
             surface.SetFont("funnitextbeeg")
             local spedw = surface.GetTextSize(spedtext)
-            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.x, scrh * 0.947 + vp.z)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
-        elseif playervel > 300 and playervel <= 700 then
-            surface.SetDrawColor(220, 154, 13, 147)
+        elseif playervel > 300 and playervel < 900 then
+            --surface.SetDrawColor(220, 154, 13, 147)
+            --surface.SetDrawColor(73,51,4,49)
+            surface.SetDrawColor(210 * alphavel, 155 * alphavel, 36 * alphavel, 192 * alphavel)
             surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.964 + vp.x, playervel * scale, 6 * scale)
-            surface.SetTextColor(220, 154, 13, 147)
+            --surface.SetTextColor(220, 154, 13, 147)
+            surface.SetTextColor(210 * alphavel, 155 * alphavel, 36 * alphavel, 192 * alphavel)
             surface.SetFont("funnitextbeeg")
             local spedw = surface.GetTextSize(spedtext)
-            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.x, scrh * 0.947 + vp.z)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
-        elseif playervel > 700 and playervel < 900 then
+            --surface.SetDrawColor(230, 179, 70, 201)
+        --[[elseif playervel > 700 and playervel < 900 then
             surface.SetDrawColor(210, 155, 36, 192)
             surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.963 + vp.x, playervel * scale, 8 * scale)
             surface.SetTextColor(210, 155, 36, 192)
             surface.SetFont("funnitextbeeg")
             local spedw = surface.GetTextSize(spedtext)
-            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.x, scrh * 0.947 + vp.z)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
+        ]]
         elseif playervel >= 900 then
             surface.SetDrawColor(252, 202, 95)
             surface.DrawRect(scrw * 0.5 + vp.z - 900 / 2, scrh * 0.963 + vp.x, 900 * scale, 8 * scale)
             surface.SetTextColor(252, 202, 95)
             surface.SetFont("funnitextbeeg")
             local spedw = surface.GetTextSize(spedtext)
-            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.x, scrh * 0.947 + vp.z)
+            surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
         end
     end
@@ -441,9 +449,10 @@ local DispSegments = { -- Element alighment helpers, used while debugging
     "0.95",
 }
 
+--[[
 local debug = CreateClientConVar("PKAmmoDisp_Debug", "0", true, false, "Enable some debugging functions\nWARNING: Will cause a lot of Lua errors on death.", 0, 1)
 
-hook.Add( "HUDPaint", "drawsegment", function( name )
+hook.Add( "HUDPaint", "drawdebugdisplayalignsegment", function( name )
     local scale = ScrH() / 1080
 
     if debug:GetBool() then
@@ -470,4 +479,4 @@ hook.Add( "HUDPaint", "drawsegment", function( name )
         surface.SetFont("funnitexttiny")
         surface.DrawText("DEBUG: SecondaryAmmoType: " .. weapon:GetSecondaryAmmoType())
     end
-end )
+end )]]
