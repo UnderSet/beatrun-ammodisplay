@@ -1,6 +1,8 @@
 # beatrun-ammocounter
 My attempt at making an ammo display that works well with Beatrun.
 
+**No Spawnmenu options won't be added. Do not ask for it.**
+
 ## Features
 - Primary ammo display, with viewpunch offset and all
 - Secondary/alt-fire ammo display, with mag-style altfire support
