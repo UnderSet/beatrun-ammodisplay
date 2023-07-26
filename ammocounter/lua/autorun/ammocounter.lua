@@ -2,74 +2,171 @@
 --I wanna kill myself for making this thing.
 
 --Uses some ARC9 code. See line 167 for details.
-local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 1)
+local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
 local showspeed = CreateClientConVar("PKAmmoDisp_Speedometer", "0", true, false, "Show a speedometer at the bottom of the display", 0, 1)
+
+function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflicts.
+    local key = input.LookupBinding(bind)
+
+    if !key then
+        return false
+    else
+        return true
+    end
+end
+
+function DoesConVarExist(luavar)
+    local var = GetConVar(luavar):GetInt()
+
+    if !var then
+        return false
+    else
+        return true
+    end
+end
+
+local ARC9Installed = false
+local ArcCWInstalled = false
+local TFAInstalled = false
+
+-- Does the user have the supported weapon bases installed?
+if DoesConVarExist("arc9_precache_sounds_onfirsttake") then
+    print("ARC9 is installed!")             -- ARC9
+    ARC9Installed = true
+end
+if DoesConVarExist("arccw_automaticreload") then
+    print("ArcCW is installed!")            -- ArcCW (aka Arctic's Customizable Weaponry)
+    ArcCWInstalled = true
+end
+if DoesConVarExist("cl_tfa_hud_enabled") then
+    print("TFA Base is installed!")         -- TFA Base
+    TFAInstalled = true
+end
 
 local hide = {
     CHudAmmo = true,
     CHudSecondaryAmmo = true
 }
 
-hook.Add("HUDShouldDraw", "HideDefaultCounter", function(name)
+local SpecialWeaponFiremode = {
+    "mg_357"
+}
+
+local SpecialCorrespondingFiremode = {
+    "DOUBLE-ACTION"
+}
+
+local ArcPossibleFiremodes = {
+	"AUTO",
+	"SEMI",
+	"SAFE",
+    "UB",
+    "FRCD",
+    "SINGLE",
+    "2-BST",
+    "3-BST",
+    "2-BURST",
+    "3-BURST",
+    "DACT",
+    "SACT",
+    "LOW"
+}
+
+local ArcFiremodeDisplay = {
+	"FULL AUTO",
+	"SEMI AUTO",
+	"SAFETY",
+    "UNDERBARREL",
+    "FORCED AUTO",
+    "SEMI AUTO",
+    "2-BURST",
+    "3-BURST",
+    "2-BURST",
+    "3-BURST",
+    "DOUBLE-ACTION",
+    "SINGLE-ACTION",
+    "LOWERED"
+}
+
+hook.Add("HUDShouldDraw", "hidefunnyshit", function(name)
     if hidden:GetBool() then return end
 	if hide[name] then return false end
 end)
 
-surface.CreateFont("funnitextbeeg", {
-	shadow = true,
-	blursize = 0,
-	underline = false,
-	rotary = false,
-	strikeout = false,
-	additive = false,
-	antialias = false,
-	extended = false,
-	scanlines = 2,
-	font = "x14y24pxHeadUpDaisy",
-	italic = false,
-	outline = false,
-	symbol = false,
-	weight = 500,
-	size = ScreenScale(7)
-})
+function PKAmmoDisp_InitFonts()
+    surface.CreateFont("funnitextbeeg", {
+    	shadow = true,
+    	blursize = 0,
+    	underline = false,
+    	rotary = false,
+    	strikeout = false,
+    	additive = false,
+    	antialias = false,
+    	extended = false,
+    	scanlines = 2,
+    	font = "x14y24pxHeadUpDaisy",
+    	italic = false,
+    	outline = false,
+    	symbol = false,
+    	weight = 500,
+    	size = ScreenScale(7)
+    })
 
-surface.CreateFont("funnitexttiny", {
-	shadow = true,
-	blursize = 0,
-	underline = false,
-	rotary = false,
-	strikeout = false,
-	additive = false,
-	antialias = false,
-	extended = false,
-	scanlines = 2,
-	font = "x14y24pxHeadUpDaisy",
-	italic = false,
-	outline = false,
-	symbol = false,
-	weight = 500,
-	size = ScreenScale(6)
-})
+    surface.CreateFont("funnitexttiny", {
+    	shadow = true,
+    	blursize = 0,
+    	underline = false,
+    	rotary = false,
+    	strikeout = false,
+    	additive = false,
+    	antialias = false,
+    	extended = false,
+    	scanlines = 2,
+    	font = "x14y24pxHeadUpDaisy",
+    	italic = false,
+    	outline = false,
+    	symbol = false,
+    	weight = 500,
+    	size = ScreenScale(6)
+    })
 
-surface.CreateFont("funnitexthuge", {
-	shadow = true,
-	blursize = 0,
-	underline = false,
-	rotary = false,
-	strikeout = false,
-	additive = false,
-	antialias = false,
-	extended = false,
-	scanlines = 2,
-	font = "x14y24pxHeadUpDaisy",
-	italic = false,
-	outline = false,
-	symbol = false,
-	weight = 250,
-	size = ScreenScale(12)
-})
+    surface.CreateFont("funnitexthuge", {
+    	shadow = true,
+    	blursize = 0,
+    	underline = false,
+    	rotary = false,
+    	strikeout = false,
+    	additive = false,
+    	antialias = false,
+    	extended = false,
+    	scanlines = 2,
+    	font = "x14y24pxHeadUpDaisy",
+    	italic = false,
+    	outline = false,
+    	symbol = false,
+    	weight = 250,
+    	size = ScreenScale(12)
+    })
+end
+
+PKAmmoDisp_InitFonts()
+
+hook.Add( "OnScreenSizeChanged", "UpdateFonts", function()
+    PKAmmoDisp_InitFonts()
+end )
+    
+function GetCurrentFiremodeTable()
+    local fm = self:GetFiremode()
+
+    if fm > #self:GetValue("Firemodes") then
+        fm = 1
+        self:SetFiremode(fm)
+    end
+
+    return self:GetValue("Firemodes")[fm]
+end
 
 local blur = Material("pp/blurscreen")
 
@@ -104,6 +201,42 @@ local function funnihud()
 
     local scale = ScrH() / 1080
 
+    local ActivePrimaryFire = true -- Self-explanatory.
+
+    if ARC9Installed then function GetFiremodeName()
+        if self:GetUBGL() then
+            ARC9UsingAltfire = true
+            return self:GetProcessedValue("UBGLFiremodeName")
+        else
+        end
+    
+        local arc9_mode = self:GetCurrentFiremodeTable()
+    
+        local pkad_firemode_text = "UNKNOWN"
+    
+        if arc9_mode.PrintName then
+            pkad_firemode_text = arc9_mode.PrintName
+        else
+            if arc9_mode.Mode == 1 then
+                pkad_firemode_text = "SEMI"
+            elseif arc9_mode.Mode == 0 then
+                pkad_firemode_text = "SAFETY"
+            elseif arc9_mode.Mode < 0 then
+                pkad_firemode_text = "AUTO"
+            elseif arc9_mode.Mode > 1 then
+                pkad_firemode_text = tostring(arc9_mode.Mode) .. "-BURST"
+            end
+        end
+    
+        if self:GetSafe() then
+            pkad_firemode_text = "SAFETY"
+        end
+    
+        return pkad_firemode_text
+    end
+    end
+    
+
 	if hidden:GetInt() > 1 then return end
     
 	local vp = ply:GetViewPunchAngles()
@@ -136,34 +269,28 @@ local function funnihud()
     local speedtext = math.Round(ply:GetVelocity():Length2D() * 0.06858125) .. " km/h"
     local spedtext = roundvel .. " u/s (" .. speedtext .. ")"
     local spedw = nil
-    local colorvel = math.Clamp((playervel / 900), 1 / 3, 1)
-    local alphavel = math.Clamp((playervel / 900), 0.7, 1)
 
     if showspeed:GetBool() then
         surface.SetDrawColor(128, 128, 128, 96)
         surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 1 * scale)
         local drawcolor = nil
         if playervel <= 300 then -- "Wonderful" bar-style speedometer, as shown in some early Beatrun videos.
-            surface.SetDrawColor(73, 73, 73, 201 * alphavel)
+            surface.SetDrawColor(128, 128, 128, 146)
             surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.965 + vp.x, playervel * scale, 4 * scale)
-            surface.SetTextColor(73, 73, 73, 201 * alphavel)
+            surface.SetTextColor(128, 128, 128, 146)
             surface.SetFont("funnitextbeeg")
             local spedw = surface.GetTextSize(spedtext)
             surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
-        elseif playervel > 300 and playervel < 900 then
-            --surface.SetDrawColor(220, 154, 13, 147)
-            --surface.SetDrawColor(73,51,4,49)
-            surface.SetDrawColor(210 * alphavel, 155 * alphavel, 36 * alphavel, 192 * alphavel)
+        elseif playervel > 300 and playervel <= 700 then
+            surface.SetDrawColor(220, 154, 13, 147)
             surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.964 + vp.x, playervel * scale, 6 * scale)
-            --surface.SetTextColor(220, 154, 13, 147)
-            surface.SetTextColor(210 * alphavel, 155 * alphavel, 36 * alphavel, 192 * alphavel)
+            surface.SetTextColor(220, 154, 13, 147)
             surface.SetFont("funnitextbeeg")
             local spedw = surface.GetTextSize(spedtext)
             surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
-            --surface.SetDrawColor(230, 179, 70, 201)
-        --[[elseif playervel > 700 and playervel < 900 then
+        elseif playervel > 700 and playervel < 900 then
             surface.SetDrawColor(210, 155, 36, 192)
             surface.DrawRect(scrw * 0.5 + vp.z - (playervel / 2 * scale), scrh * 0.963 + vp.x, playervel * scale, 8 * scale)
             surface.SetTextColor(210, 155, 36, 192)
@@ -171,7 +298,6 @@ local function funnihud()
             local spedw = surface.GetTextSize(spedtext)
             surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
-        ]]
         elseif playervel >= 900 then
             surface.SetDrawColor(252, 202, 95)
             surface.DrawRect(scrw * 0.5 + vp.z - 900 / 2, scrh * 0.963 + vp.x, 900 * scale, 8 * scale)
@@ -186,17 +312,30 @@ local function funnihud()
     local weapon = ply:GetActiveWeapon()
     local ammo1, ammo1mag, ammo2, ammo2mag, hasSecondaryAmmoType = -1, -1, -1, -1, false;
     if (IsValid(weapon)) then
+        infmag2 = (math.Clamp(ply:GetAmmoCount(weapon:GetPrimaryAmmoType()), 0, 9999))
+        infmag3 = (math.Clamp(ply:GetAmmoCount(weapon:GetSecondaryAmmoType()), 0, 9999))
         ammo1 = math.Clamp(weapon:Clip1(), -1, 9999)
-        ammo1mag = ("/" .. math.Clamp(ply:GetAmmoCount(weapon:GetPrimaryAmmoType()), 0, 9999))
+        ammo1mag = ("/" .. math.Clamp(infmag2, 0, 9999))
         ammo2 = math.Clamp(weapon:Clip2(), -1, 9999)
-        ammo2mag = ("/" .. math.Clamp(ply:GetAmmoCount(weapon:GetSecondaryAmmoType()), 0, 9999))
+        ammo2mag = ("/" .. math.Clamp(infmag3, 0, 9999))
         hasSecondaryAmmoType = false
         ammo1type = weapon:GetPrimaryAmmoType()
         ammo2type = weapon:GetSecondaryAmmoType()
         max1mag = weapon:GetMaxClip1()
         maxmag2 = weapon:GetMaxClip2()
-        infmag2 = (math.Clamp(ply:GetAmmoCount(weapon:GetPrimaryAmmoType()), 0, 9999))
-        infmag3 = (math.Clamp(ply:GetAmmoCount(weapon:GetSecondaryAmmoType()), 0, 9999))
+    end
+
+    local a9 = false
+    local inarc9cust = false
+    local isweparccw = false
+
+    if ARC9Installed then
+        a9 = weapon.ARC9
+        inarc9cust = a9 and weapon:GetCustomize()
+    end
+
+    if ArcCWInstalled then
+        isweparccw = weapon.ArcCW
     end
 
     local melee = false
@@ -218,8 +357,140 @@ local function funnihud()
         HasAltFire = true
         UsesAltMag = 1
     end
+
+    ARC9InfClip = false
+    ARC9InfAmmo = false
+    
+    if ARC9Installed and a9 and (weapon:GetInfiniteAmmo() or GetConVar("arc9_infinite_ammo"):GetBool()) then
+        inf_reserve = true
+        ammo1mag = "/inf"
+        ammo2mag = "/inf"
+        infmag3 = "∞"
+    end
+    if ARC9Installed and a9 and weapon:GetProcessedValue("BottomlessClip", true) then
+        ARC9InfClip = true
+
+        --ammo2disp = ∞
+        --ammo1disp = ∞
+        infmag = true
+
+        if inf_reserve == true then
+            infmag2 = "∞"
+            infmag3 = "∞"
+        else
+            infmag2 = infmag2 + ammo1
+            infmag3 = infmag3 + ammo2
+        end
+        UsesAltMag = 0
+    end
+    
+    local pkad_firemode_text = "FULL AUTO"
+
+    local automatics = {
+        ["weapon_smg1"] = true,
+        ["weapon_ar2"] = true,
+        ["weapon_mp5_hl1"] = true,
+        ["weapon_gauss"] = true,
+        ["weapon_egon"] = true
+    }    
     
     if (not hidden:GetBool() and ply:IsValid() and ply:Alive() and not melee) then
+        if SpecialWeaponFiremode[ply:GetActiveWeapon()] then
+            pkad_firemode_text = SpecialCorrespondingFiremode[ply:GetActiveWeapon()]
+        elseif ARC9Installed and a9 then -- This acquires firemode. Yes, it takes this much code to simply acquire your bloody firemode.
+            local arc9_mode = weapon:GetCurrentFiremodeTable()
+        
+            pkad_firemode_text = weapon:GetFiremodeName()
+        
+            -- Funny note: Some ARC9 functions are global so we can just use them directly if ARC9 is installed! Hooray!
+            if #weapon:GetValue("Firemodes") > 1 then
+                wepmultifire = true
+            end
+        
+            if weapon:GetProcessedValue("NoFiremodeWhenEmpty", true) and weapon:Clip1() <= 0 then
+                wepmultifire = false
+            end
+        
+            if weapon:GetUBGL() then
+                arc9_mode = {
+                    Mode = weapon:GetCurrentFiremode(),
+                    PrintName = weapon:GetProcessedValue("UBGLFiremodeName")
+                }
+                pkad_firemode_text = arc9_mode.PrintName
+                wepmultifire = false
+            end
+        
+            if weapon:GetSafe() then
+                arc9safety = true
+            end
+        
+            if weapon:GetInfiniteAmmo() then
+                arc9inf_reserve = true
+            end
+        
+            if weapon:GetJammed() then
+                arc9jammed = true
+            end
+        
+            if weapon:GetProcessedValue("Overheat", true) then
+                arc9showheat = true
+                heat = weapon:GetHeatAmount()
+                heatcap = weapon:GetProcessedValue("HeatCapacity")
+                heatlocked = weapon:GetHeatLockout()
+            end
+        elseif weapon.ArcCW then
+            local arccw_mode = weapon:GetCurrentFiremode()
+    
+            pkad_firemode_text = weapon:GetFiremodeName()
+            -- there was a reason I kept it to 4 letters you assholes
+    
+            pkad_firemode_text = string.upper(pkad_firemode_text)  
+        elseif weapon:IsScripted() then
+            if !weapon.Primary.Automatic then
+                pkad_firemode_text = "SEMI AUTO"
+            end
+    
+            if weapon.ThreeRoundBurst then
+                pkad_firemode_text = "3-BURST"
+            end
+    
+            if weapon.TwoRoundBurst then
+                pkad_firemode_text = "2-BURST"
+            end
+    
+            if weapon.GetSafe then
+                if weapon:GetSafe() then
+                    pkad_firemode_text = "SAFETY"
+                end
+            end
+    
+            if isfunction(weapon.Safe) then
+                if weapon:Safe() then
+                    pkad_firemode_text = "SAFETY"
+                end
+            end
+    
+            if isfunction(weapon.Safety) then
+                if weapon:Safety() then
+                    pkad_firemode_text = "SAFETY"
+                end
+            end
+        else
+            if !automatics[weapon:GetClass()] then
+                pkad_firemode_text = "SEMI AUTO"
+            end
+        end
+        -- END OF FIREMODE BS
+        --print(pkad_firemode_text)
+
+        -- Are we using altfire?
+        if ArcCWInstalled and isweparccw and string.match(pkad_firemode_text, "UB") then -- Extra precautions
+            pkad_firemode_text = "SWITCH"
+            ActivePrimaryFire = false
+        elseif ARC9Installed and a9 and weapon:GetUBGL() then
+            ActivePrimaryFire = false
+        end
+
 		if dynamic:GetBool() then
 			hidealpha = math.Approach(hidealpha, 150 * ply:GetVelocity():Length() / 250, 100 * RealFrameTime())
 		else
@@ -264,24 +535,43 @@ local function funnihud()
             surface.SetFont("funnitextbeeg")
             local resrvw, resrvh = surface.GetTextSize(ammo1mag)
             surface.SetTextPos(rscrbor - resrvw + vp.z, scrh * 0.91 + vp.x)
-            if infmag2 == 0 then
-                surface.SetTextColor(255,0,0,255)
+            if (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
+                if ActivePrimaryFire == false then
+                    surface.SetTextColor(153,153,153,255)
+                else
+                    surface.SetTextColor(text_color)
+                end
+                surface.DrawText(ammo1mag)
+            elseif infmag2 == 0 then
+                if ActivePrimaryFire == true then
+                    surface.SetTextColor(255,0,0,255)
+                else
+                    surface.SetTextColor(153,0,0,255)
+                end
                 surface.DrawText(ammo1mag)
                 surface.SetTextColor(text_color)
-            else
-                surface.DrawText(ammo1mag)
             end
 
             surface.SetFont("funnitexthuge")
             local magw, magh = surface.GetTextSize(ammo1)
             surface.SetTextPos(rscrbor - resrvw - magw + vp.z, scrh * 0.9 + vp.x)
             if ammo1 < weapon:GetMaxClip1() / 3 then
-                surface.SetTextColor(255,0,0,255)
+                if ActivePrimaryFire == true then
+                    surface.SetTextColor(255,0,0,255)
+                else
+                    surface.SetTextColor(153,0,0,255)
+                end
                 surface.DrawText(ammo1)
                 surface.SetTextColor(text_color)
                 --ammobarcolor = "220 0 0 255"
             else
+                if ActivePrimaryFire == true then
+                    surface.SetTextColor(text_color)
+                else
+                    surface.SetTextColor(153,153,153,255)
+                end
                 surface.DrawText(ammo1)
+                surface.SetTextColor(text_color)
             end
 
             if ammo1 ~= -1 and ammo1 < (weapon:GetMaxClip1() / 3) then
@@ -309,19 +599,28 @@ local function funnihud()
                 local mag2w, mag2h = surface.GetTextSize(infmag3)
                 surface.SetTextPos(scrw * 0.86 - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if infmag3 == 0 then
-                    surface.SetTextColor(255,0,0,255)
+                    if ActivePrimaryFire then
+                        surface.SetTextColor(153,0,0,255)
+                    else
+                        surface.SetTextColor(255,0,0,255)
+                    end
                     surface.DrawText(infmag3)
-                    surface.SetTextColor(text_color)
+                    --surface.SetTextColor(text_color)
                     --ammobarcolor = "220 0 0 255"
-                else
+                elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
+                    if ActivePrimaryFire == true then
+                        surface.SetTextColor(153,153,153,255)
+                    else
+                        surface.SetTextColor(text_color)
+                    end
                     surface.DrawText(infmag3)
                 end
 
-                if infmag2 == 0 then
+                if infmag3 == 0 then
                     surface.SetDrawColor(255, 0, 0, 230)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
-                else
+                elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
                     surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
@@ -337,10 +636,18 @@ local function funnihud()
                 local resrv2w, resrv2h = surface.GetTextSize(ammo2mag)
                 surface.SetTextPos(scrw * 0.86 - resrv2w + vp.z, scrh * 0.91 + vp.x)
                 if infmag3 == 0 then
-                    surface.SetTextColor(255,0,0,255)
+                    if ActivePrimaryFire == true then
+                        surface.SetTextColor(153,0,0,255)
+                    else
+                        surface.SetTextColor(255,0,0,255)
+                    end
                     surface.DrawText(ammo2mag)
-                    surface.SetTextColor(text_color)
                 else
+                    if ActivePrimaryFire == true then
+                        surface.SetTextColor(153,153,153,255)
+                    else
+                        surface.SetTextColor(text_color)
+                    end
                     surface.DrawText(ammo2mag)
                 end
     
@@ -348,11 +655,19 @@ local function funnihud()
                 local mag2w, mag2h = surface.GetTextSize(ammo2)
                 surface.SetTextPos(scrw * 0.86 - resrv2w - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if ammo2 < weapon:GetMaxClip2() / 3 then
-                    surface.SetTextColor(255,0,0,255)
+                    if ActivePrimaryFire == true then
+                        surface.SetTextColor(153,0,0,255)
+                    else
+                        surface.SetTextColor(255,0,0,255)
+                    end
                     surface.DrawText(ammo2)
-                    surface.SetTextColor(text_color)
                     --ammobarcolor = "220 0 0 255"
-                else
+                elseif (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
+                    if ActivePrimaryFire == true then
+                        surface.SetTextColor(153,153,153,255)
+                    else
+                        surface.SetTextColor(text_color)
+                    end
                     surface.DrawText(ammo2)
                 end
 
@@ -362,7 +677,7 @@ local function funnihud()
                     surface.SetDrawColor(255, 0, 0, 230)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
-                elseif ammo2 ~= -1 then
+                elseif ammo2 ~= -1 or (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
                     surface.SetDrawColor(10, 50, 50, 100)                    
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
                     surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
@@ -388,10 +703,14 @@ local function funnihud()
             local magw, magh = surface.GetTextSize(infmag2)
             surface.SetTextPos(rscrbor - magw + vp.z, scrh * 0.9 + vp.x)
             if infmag2 == 0 then
-                surface.SetTextColor(255,0,0,255)
+                if ActivePrimaryFire then
+                    surface.SetTextColor(153,0,0,255)
+                else
+                    surface.SetTextColor(255,0,0,255)
+                    --ammobarcolor = "220 0 0 255"
+                end
                 surface.DrawText(infmag2)
                 surface.SetTextColor(text_color)
-                --ammobarcolor = "220 0 0 255"
             else
                 surface.DrawText(infmag2)
             end
@@ -400,20 +719,85 @@ local function funnihud()
                 surface.SetDrawColor(255, 0, 0, 230)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
-                surface.SetFont("funnitexttiny")
-                local txtw, txth = surface.GetTextSize("NO MAGAZINE")
-                surface.SetTextColor(255,255,255,255)
-                surface.SetTextPos(rscrbor - txtw + vp.z, scrh * 0.93 + vp.x)
-                surface.DrawText("NO MAGAZINE")
             else
                 surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
-                surface.SetFont("funnitexttiny")
-                local txtw, txth = surface.GetTextSize("NO MAGAZINE")
-                surface.SetTextColor(255,255,255,255)
-                surface.SetTextPos(rscrbor - txtw + vp.z, scrh * 0.93 + vp.x)
-                surface.DrawText("NO MAGAZINE")
+            end
+
+            if HasAltFire and UsesAltMag == 0 then
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
+                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85, math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85)
+
+                surface.SetFont("funnitexthuge")
+                local mag2w, mag2h = surface.GetTextSize(infmag3)
+                surface.SetTextPos(scrw * 0.86 - mag2w + vp.z, scrh * 0.9 + vp.x)
+                if infmag3 == 0 then
+                    surface.SetTextColor(255,0,0,255)
+                    surface.DrawText(infmag3)
+                    surface.SetTextColor(text_color)
+                    --ammobarcolor = "220 0 0 255"
+                elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
+                    surface.SetTextColor(text_color)
+                    surface.DrawText(infmag3)
+                end
+
+                if infmag2 == 0 then
+                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
+                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                end
+            elseif HasAltFire and UsesAltMag == 1 then
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
+                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85, math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(corner_color_c)
+                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85)
+
+                surface.SetFont("funnitextbeeg")
+                local resrv2w, resrv2h = surface.GetTextSize(ammo2mag)
+                surface.SetTextPos(scrw * 0.86 - resrv2w + vp.z, scrh * 0.91 + vp.x)
+                if infmag3 == 0 then
+                    surface.SetTextColor(255,0,0,255)
+                    surface.DrawText(ammo2mag)
+                    surface.SetTextColor(text_color)
+                else
+                    surface.DrawText(ammo2mag)
+                end
+    
+                surface.SetFont("funnitexthuge")
+                local mag2w, mag2h = surface.GetTextSize(ammo2)
+                surface.SetTextPos(scrw * 0.86 - resrv2w - mag2w + vp.z, scrh * 0.9 + vp.x)
+                if ammo2 < weapon:GetMaxClip2() / 3 then
+                    surface.SetTextColor(255,0,0,255)
+                    surface.DrawText(ammo2)
+                    surface.SetTextColor(text_color)
+                    --ammobarcolor = "220 0 0 255"
+                elseif (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
+                    surface.SetTextColor(text_color)
+                    surface.DrawText(ammo2)
+                end
+
+                if ammo2 ~= -1 and ammo2 < (weapon:GetMaxClip2() / 3) then
+                    surface.SetDrawColor(200, 30, 30, 100)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
+                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                elseif ammo2 ~= -1 or (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
+                    surface.SetDrawColor(10, 50, 50, 100)                    
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
+                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.SetDrawColor(corner_color_c)
+                end
             end
         end
 
@@ -421,13 +805,112 @@ local function funnihud()
             surface.SetDrawColor(255,255,255,255)
             surface.DrawRect(256, 256, 256, 256)
         end
-        
+
+        if ArcCWInstalled and isweparccw then
+            for i=1,#ArcPossibleFiremodes do
+                if (string.match(pkad_firemode_text, ArcPossibleFiremodes[i])) then
+                    pkad_firemode_text = ArcFiremodeDisplay[i]
+                end
+            end
+            string.Replace(pkad_firemode_text, "BST", "BURST")
+            --[[for i=1,#ArcFiremodeDisplay do
+                if (string.match(pkad_firemode_text, )) then
+                    pkad_firemode_text = ArcFiremodeDisplay[i]
+                end
+            end]]
+            if ActivePrimaryFire == false then
+                surface.SetTextColor(255,255,255,255)
+                surface.SetFont("funnitexttiny")
+            else
+                surface.SetTextColor(153,153,153,255)
+                surface.SetFont("funnitexttiny")
+            end
+            local firemodethicc, firemodetall = surface.GetTextSize(pkad_firemode_text)
+            surface.SetTextPos(rscrbor - firemodethicc + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(pkad_firemode_text)
+        elseif not isweparccw then
+            local ARC9Firemodes = {
+                "AUTO",
+                "SINGLE",
+                "SAFE",
+                "3-BURST",
+                "2-BURST"
+            }
+            local ARC9ModeDisplay = {
+                "FULL AUTO",
+                "SEMI AUTO",
+                "SAFETY",
+                "3-BURST",
+                "2-BURST"
+            }
+            if ARC9Installed and a9 then
+                for i=1,#ArcPossibleFiremodes do
+                    if (string.match(pkad_firemode_text, ArcPossibleFiremodes[i])) and not ARC9UsingAltfire then
+                        pkad_processed_firemode_text = i
+                    end
+                end
+                for i=1,#ArcFiremodeDisplay do
+                    if (string.match(pkad_processed_firemode_text, i)) and not ARC9UsingAltfire then
+                        print(pkad_firemode_text .. ArcFiremodeDisplay[i])
+                        pkad_processed_firemode_text = ArcFiremodeDisplay[i]
+                    end
+                end
+            end
+            if ARC9Installed and a9 and weapon:GetUBGL() then -- This is the ONLY way for ARC9 altfire detection to work. For some godforsaken reason.
+                pkad_processed_firemode_text = "SWITCH"
+            end    
+
+            if pkad_processed_firemode_text == "SWITCH" then
+                surface.SetTextColor(255,255,255,255)
+                surface.SetFont("funnitexttiny")
+            else
+                surface.SetTextColor(153,153,153,255)
+                surface.SetFont("funnitexttiny")
+            end
+            local firemodethicc, firemodetall = surface.GetTextSize(pkad_processed_firemode_text)
+            surface.SetTextPos(rscrbor - firemodethicc + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(pkad_processed_firemode_text)
+
+            local usekey = string.upper(string.Replace(input.LookupBinding("+use", 1), "MOUSE", "M"))
+            local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
+            local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
+            if HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
+                surface.SetTextColor(255,255,255,255)
+                surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
+                surface.DrawText("[" .. usekey .."]+" .. "[" .. attack2 .. "]")
+            elseif HasAltFire and ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
+                surface.SetTextColor(255,255,255,255)
+                surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
+                surface.DrawText("[" .. usekey .."]+" .. "[" .. attack2 .. "]")
+            end
+            
+            if HasAltFire then
+                local altmodew, altmodeh = nil
+                local altfiremode = nil
+                if automatics[weapon:GetClass()] then
+                    surface.SetTextColor(text_color)
+                    altfiremode = "SWITCH"
+                    altmodew, altmodeh = surface.GetTextSize(altfiremode)
+                elseif ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
+                    surface.SetTextColor(text_color)
+                    altfiremode = "SWITCH"
+                    altmodew, altmodeh = surface.GetTextSize(altfiremode)
+                else
+                    surface.SetTextColor(153,153,153,255)
+                    altfiremode = "UNDERBARREL"
+                    altmodew, altmodeh = surface.GetTextSize(altfiremode)
+                end
+                surface.SetTextPos(scrw * 0.86 - altmodew + vp.z, scrh * 0.95 + vp.x)
+                surface.DrawText(altfiremode)
+            end
+        end
     end
 end
 
 hook.Add("HUDPaint", "funnicounter", funnihud)
 
 local DispSegments = { -- Element alighment helpers, used while debugging
+    "0",
     "0.1",
     "0.2",
     "0.3",
@@ -449,20 +932,19 @@ local DispSegments = { -- Element alighment helpers, used while debugging
     "0.95",
 }
 
---[[
 local debug = CreateClientConVar("PKAmmoDisp_Debug", "0", true, false, "Enable some debugging functions\nWARNING: Will cause a lot of Lua errors on death.", 0, 1)
 
-hook.Add( "HUDPaint", "drawdebugdisplayalignsegment", function( name )
+hook.Add( "HUDPaint", "drawsegment", function( name )
     local scale = ScrH() / 1080
 
     if debug:GetBool() then
-        local weapon = ply:GetActiveWeapon()
+        local weapon = LocalPlayer():GetActiveWeapon()
         local ammo1, ammo1mag, ammo2, ammo2mag, hasSecondaryAmmoType = -1, -1, -1, -1, false;
         for i=1,#DispSegments do
-            surface.SetDrawColor(255,255,255,255)
+            surface.SetDrawColor(255,255,255,128)
             surface.DrawRect(ScrW() * DispSegments[i], 1, 1, ScrH()) 
             surface.DrawRect(1, ScrH() * DispSegments[i], ScrW(), 1) 
-            surface.SetDrawColor(255,255,255,128)
+            surface.SetDrawColor(255,255,255,64)
             surface.DrawRect(ScrW() * (DispSegments[i] + 0.025), 1, 1, ScrH()) 
             surface.DrawRect(1, ScrH() * (DispSegments[i] + 0.025), ScrW(), 1) 
         end
@@ -479,4 +961,4 @@ hook.Add( "HUDPaint", "drawdebugdisplayalignsegment", function( name )
         surface.SetFont("funnitexttiny")
         surface.DrawText("DEBUG: SecondaryAmmoType: " .. weapon:GetSecondaryAmmoType())
     end
-end )]]
+end )
