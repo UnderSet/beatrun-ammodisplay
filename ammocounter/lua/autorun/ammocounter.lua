@@ -851,7 +851,7 @@ local function funnihud()
                 end
                 for i=1,#ArcFiremodeDisplay do
                     if (string.match(pkad_processed_firemode_text, i)) and not ARC9UsingAltfire then
-                        print(pkad_firemode_text .. ArcFiremodeDisplay[i])
+                        --print(pkad_firemode_text .. ArcFiremodeDisplay[i])
                         pkad_processed_firemode_text = ArcFiremodeDisplay[i]
                     end
                 end
