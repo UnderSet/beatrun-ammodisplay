@@ -6,12 +6,13 @@ local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks t
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
 local showspeed = CreateClientConVar("PKAmmoDisp_Speedometer", "0", true, false, "Show a speedometer at the bottom of the display", 0, 1)
+local ProcessFiremode = CreateClientConVar("PKAmmoDisp_ProcessFiremode", "0", true, false, "Process the firemode before displaying. I do not recommend using this./nFUN FACT: It appears you can't directly get what firemode you're using for ArcCW weapons, so this WAS used for consistency.", 0, 1)
 
 function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflicts.
     local key = input.LookupBinding(bind)
 
     if !key then
-        return false
+        return falsedddddddddd
     else
         return true
     end
@@ -236,6 +237,17 @@ local function funnihud()
     end
     end
     
+    CreateClientConVar("PKAmmoDisp_CornerColor", "65 124 174 124", true, false, "Ammo counter corner color.")
+    CreateClientConVar("PKAmmoDisp_AmmobarColor", "85 144 194 200", true, false, "Ammo bar color.")
+    CreateClientConVar("PKAmmoDisp_TextColor", "255 255 255 255", true, false, "Ammo counter text color.")
+    --local ammobarcolor = nil
+
+    local corner_color_c = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_CornerColor"))
+    corner_color_c.a = math.Clamp(corner_color_c.a + 50, 0, 255)
+    corner_color_c.a = dynamic:GetBool() and math.max(150 - hidealpha, 50) or corner_color_c.a
+
+    local text_color = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_TextColor"))
+    text_color.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or text_color.a
 
 	if hidden:GetInt() > 1 then return end
     
@@ -256,6 +268,7 @@ local function funnihud()
 
 	--local coursew, _ = surface.GetTextSize(coursename)
 	local bgpadw = nickw
+    local bgpadding = bgpadw > 200 and bgpadw + 40 or 200 -- Technically not needed but I'm too lazy to remove it
 	-- local bgpadh = nickh
 
 	--[[if bgpadw < coursew then
@@ -267,10 +280,11 @@ local function funnihud()
     local playervel = ply:GetVelocity():Length2D()
     local roundvel = math.Round(ply:GetVelocity():Length2D())
     local speedtext = math.Round(ply:GetVelocity():Length2D() * 0.06858125) .. " km/h"
-    local spedtext = roundvel .. " u/s (" .. speedtext .. ")"
+    --local spedtext = roundvel .. " u/s (" .. speedtext .. ")"
     local spedw = nil
 
-    if showspeed:GetBool() then
+    -- Legacy speedometer (works with any gamemode btw)
+    --[[if showspeed:GetBool() then
         surface.SetDrawColor(128, 128, 128, 96)
         surface.DrawRect(scrw * 0.5 + vp.z - 450 * scale, scrh * 0.965 + vp.x, 900 * scale, 1 * scale)
         local drawcolor = nil
@@ -307,7 +321,7 @@ local function funnihud()
             surface.SetTextPos(scrw * 0.5 - (spedw / 2) + vp.z, scrh * 0.947 + vp.x)
             surface.DrawText(spedtext)
         end
-    end
+    end]]
 
     local weapon = ply:GetActiveWeapon()
     local ammo1, ammo1mag, ammo2, ammo2mag, hasSecondaryAmmoType = -1, -1, -1, -1, false;
@@ -395,6 +409,13 @@ local function funnihud()
     }    
     
     if (not hidden:GetBool() and ply:IsValid() and ply:Alive() and not melee) then
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.865 + vp.x, 40 * scale, scale * 25)
+        DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25, math.max(255 - hidealpha, 2))
+
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25)
+
         if SpecialWeaponFiremode[ply:GetActiveWeapon()] then
             pkad_firemode_text = SpecialCorrespondingFiremode[ply:GetActiveWeapon()]
         elseif ARC9Installed and a9 then -- This acquires firemode. Yes, it takes this much code to simply acquire your bloody firemode.
@@ -501,17 +522,6 @@ local function funnihud()
         local magrate2 = ammo2 / weapon:GetMaxClip2()
         local lowamount = weapon:GetMaxClip1() / 3
 
-        CreateClientConVar("PKAmmoDisp_CornerColor", "65 124 174 124", true, false, "Ammo counter corner color.")
-        CreateClientConVar("PKAmmoDisp_AmmobarColor", "85 144 194 200", true, false, "Ammo bar color.")
-        CreateClientConVar("PKAmmoDisp_TextColor", "255 255 255 255", true, false, "Ammo counter text color.")
-        --local ammobarcolor = nil
-
-	    local bgpadding = bgpadw > 200 and bgpadw + 40 or 200
-    
-        local corner_color_c = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_CornerColor"))
-        corner_color_c.a = math.Clamp(corner_color_c.a + 50, 0, 255)
-        corner_color_c.a = dynamic:GetBool() and math.max(150 - hidealpha, 50) or corner_color_c.a
-
         surface.SetDrawColor(corner_color_c)
         surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 40 * scale, scale * 85)
         DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.895 + vp.x, scale * bgpadding, scale * 85, math.max(255 - hidealpha, 2))
@@ -523,9 +533,6 @@ local function funnihud()
         local speedlengthw, speedlengthh = surface.GetTextSize(speedtext)
         --print(speedlengthw .. "   " .. speedlengthh)
         local rscrbor = scrw * 0.986
-
-        local text_color = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_TextColor"))
-		text_color.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or text_color.a
 
         surface.SetTextColor(text_color)
         surface.SetTextPos(rscrbor - speedlengthw + vp.z, scrh * 0.95 + vp.x)
@@ -591,9 +598,9 @@ local function funnihud()
             if HasAltFire and UsesAltMag == 0 then
                 surface.SetDrawColor(corner_color_c)
                 surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
-                DrawBlurRect2(scrw * 0.80 + vp.z, scrh * 0.895 + vp.x, scale * 125, scale * 85, math.max(255 - hidealpha, 2))
+                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - hidealpha, 2))
                 surface.SetDrawColor(corner_color_c)
-                surface.DrawOutlinedRect(scrw * 0.80 + vp.z, scrh * 0.895 + vp.x, scale * 125, scale * 85)
+                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
 
                 surface.SetFont("funnitexthuge")
                 local mag2w, mag2h = surface.GetTextSize(infmag3)
@@ -627,10 +634,10 @@ local function funnihud()
                 end
             elseif HasAltFire and UsesAltMag == 1 then
                 surface.SetDrawColor(corner_color_c)
-                surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 23 * scale, scale * 85)
-                DrawBlurRect2(scrw * 0.788 + vp.z, scrh * 0.895 + vp.x, scale * 149, scale * 85, math.max(255 - hidealpha, 2))
+                surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
+                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - hidealpha, 2))
                 surface.SetDrawColor(corner_color_c)
-                surface.DrawOutlinedRect(scrw * 0.788 + vp.z, scrh * 0.895 + vp.x, scale * 149, scale * 85)
+                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
 
                 surface.SetFont("funnitextbeeg")
                 local resrv2w, resrv2h = surface.GetTextSize(ammo2mag)
@@ -728,9 +735,9 @@ local function funnihud()
             if HasAltFire and UsesAltMag == 0 then
                 surface.SetDrawColor(corner_color_c)
                 surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
-                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85, math.max(255 - hidealpha, 2))
+                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - hidealpha, 2))
                 surface.SetDrawColor(corner_color_c)
-                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85)
+                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
 
                 surface.SetFont("funnitexthuge")
                 local mag2w, mag2h = surface.GetTextSize(infmag3)
@@ -747,19 +754,19 @@ local function funnihud()
 
                 if infmag2 == 0 then
                     surface.SetDrawColor(255, 0, 0, 230)
-                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
                     surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
-                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
+                    surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
             elseif HasAltFire and UsesAltMag == 1 then
                 surface.SetDrawColor(corner_color_c)
                 surface.DrawRect(scrw * 0.76025 + scale * bgpadding + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
-                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85, math.max(255 - hidealpha, 2))
+                DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - hidealpha, 2))
                 surface.SetDrawColor(corner_color_c)
-                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 141, scale * 85)
+                surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
 
                 surface.SetFont("funnitextbeeg")
                 local resrv2w, resrv2h = surface.GetTextSize(ammo2mag)
@@ -806,29 +813,13 @@ local function funnihud()
             surface.DrawRect(256, 256, 256, 256)
         end
 
-        if ArcCWInstalled and isweparccw then
+        if ArcCWInstalled and isweparccw and ProcessFiremode:GetBool() then
             for i=1,#ArcPossibleFiremodes do
                 if (string.match(pkad_firemode_text, ArcPossibleFiremodes[i])) then
                     pkad_firemode_text = ArcFiremodeDisplay[i]
                 end
             end
-            string.Replace(pkad_firemode_text, "BST", "BURST")
-            --[[for i=1,#ArcFiremodeDisplay do
-                if (string.match(pkad_firemode_text, )) then
-                    pkad_firemode_text = ArcFiremodeDisplay[i]
-                end
-            end]]
-            if ActivePrimaryFire == false then
-                surface.SetTextColor(255,255,255,255)
-                surface.SetFont("funnitexttiny")
-            else
-                surface.SetTextColor(153,153,153,255)
-                surface.SetFont("funnitexttiny")
-            end
-            local firemodethicc, firemodetall = surface.GetTextSize(pkad_firemode_text)
-            surface.SetTextPos(rscrbor - firemodethicc + vp.z, scrh * 0.95 + vp.x)
-            surface.DrawText(pkad_firemode_text)
-        elseif not isweparccw then
+        elseif not isweparccw and ProcessFiremode:GetBool() then
             local ARC9Firemodes = {
                 "AUTO",
                 "SINGLE",
@@ -858,52 +849,138 @@ local function funnihud()
             end
             if ARC9Installed and a9 and weapon:GetUBGL() then -- This is the ONLY way for ARC9 altfire detection to work. For some godforsaken reason.
                 pkad_processed_firemode_text = "SWITCH"
-            end    
-
-            if pkad_processed_firemode_text == "SWITCH" then
-                surface.SetTextColor(255,255,255,255)
-                surface.SetFont("funnitexttiny")
-            else
-                surface.SetTextColor(153,153,153,255)
-                surface.SetFont("funnitexttiny")
+            end   
+        end
+        string.Replace(pkad_firemode_text, "BST", "BURST")
+        --[[for i=1,#ArcFiremodeDisplay do
+            if (string.match(pkad_firemode_text, )) then
+                pkad_firemode_text = ArcFiremodeDisplay[i]
             end
+        end]]
+        pkad_processed_firemode_text = pkad_firemode_text
+         
+        if ActivePrimaryFire == false or pkad_processed_firemode_text == "SWITCH" then
+            surface.SetTextColor(255,255,255,255)
+            surface.SetFont("funnitexttiny")
+        else
+            surface.SetTextColor(153,153,153,255)
+            surface.SetFont("funnitexttiny")
+        end
+        if isweparccw and ActivePrimaryFire == false then
+            local firemodethicc, firemodetall = surface.GetTextSize("SWITCH")
+            surface.SetTextPos(rscrbor - firemodethicc + vp.z, scrh * 0.95 + vp.x)
+            surface.SetTextColor(text_color)
+            surface.DrawText("SWITCH")
+        else
             local firemodethicc, firemodetall = surface.GetTextSize(pkad_processed_firemode_text)
             surface.SetTextPos(rscrbor - firemodethicc + vp.z, scrh * 0.95 + vp.x)
             surface.DrawText(pkad_processed_firemode_text)
-
-            local usekey = string.upper(string.Replace(input.LookupBinding("+use", 1), "MOUSE", "M"))
-            local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
-            local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
-            if HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
-                surface.SetTextColor(255,255,255,255)
-                surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
-                surface.DrawText("[" .. usekey .."]+" .. "[" .. attack2 .. "]")
-            elseif HasAltFire and ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
-                surface.SetTextColor(255,255,255,255)
-                surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
-                surface.DrawText("[" .. usekey .."]+" .. "[" .. attack2 .. "]")
-            end
-            
-            if HasAltFire then
-                local altmodew, altmodeh = nil
-                local altfiremode = nil
-                if automatics[weapon:GetClass()] then
-                    surface.SetTextColor(text_color)
-                    altfiremode = "SWITCH"
-                    altmodew, altmodeh = surface.GetTextSize(altfiremode)
-                elseif ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
-                    surface.SetTextColor(text_color)
-                    altfiremode = "SWITCH"
-                    altmodew, altmodeh = surface.GetTextSize(altfiremode)
-                else
-                    surface.SetTextColor(153,153,153,255)
-                    altfiremode = "UNDERBARREL"
-                    altmodew, altmodeh = surface.GetTextSize(altfiremode)
-                end
-                surface.SetTextPos(scrw * 0.86 - altmodew + vp.z, scrh * 0.95 + vp.x)
-                surface.DrawText(altfiremode)
-            end
         end
+
+        local usekey = string.upper(string.Replace(input.LookupBinding("+use", 1), "MOUSE", "M"))
+        local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
+        local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
+
+        local ubglkey = nil
+        if ARC9Installed and a9 and not IsInputBound("+arc9_ubgl") then
+            ubglkey = "[" .. usekey .."]+" .. "[" .. attack2 .. "]"
+        elseif ARC9Installed and a9 and IsInputBound("+arc9_ubgl") then
+            ubglkey = "[" .. string.upper(input.LookupBinding("+arc9_ubgl", 1)) .. "]"
+        elseif ArcCWInstalled and isweparccw and IsInputBound("arccw_toggle_ubgl") then
+            ubglkey = "[" .. string.upper(input.LookupBinding("arccw_toggle_ubgl", 1)) .. "]"
+        elseif ArcCWInstalled and isweparccw then
+            ubglkey = "[" .. usekey .."]+" .. "[" .. reloadkey .. "]"
+        end
+
+        if HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
+            surface.SetTextColor(255,255,255,255)
+            surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(ubglkey)
+        elseif HasAltFire and ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
+            surface.SetTextColor(255,255,255,255)
+            surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(ubglkey)
+        end
+        
+        if HasAltFire then
+            local altmodew, altmodeh = nil
+            local altfiremode = nil
+            if automatics[weapon:GetClass()] then
+                surface.SetTextColor(text_color)
+                altfiremode = "FIRE"
+                altmodew, altmodeh = surface.GetTextSize(altfiremode)
+            elseif ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
+                surface.SetTextColor(text_color)
+                altfiremode = "SWITCH"
+                altmodew, altmodeh = surface.GetTextSize(altfiremode)
+            else
+                surface.SetTextColor(153,153,153,255)
+                altfiremode = "UNDERBARREL"
+                altmodew, altmodeh = surface.GetTextSize(altfiremode)
+            end
+            surface.SetTextPos(scrw * 0.86 - altmodew + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(altfiremode)
+        end
+    elseif ply:IsValid() and ply:Alive() and melee then
+        -- Spaghetti for EasyChat to STOP SPITTING ERRORS MY WAY
+        ActivePrimaryFire = false 
+        pkad_processed_firemode_text = "SWITCH"
+        if ActivePrimaryFire == false or pkad_processed_firemode_text == "SWITCH" then
+            surface.SetTextColor(255,255,255,255)
+            surface.SetFont("funnitexttiny")
+        else
+            surface.SetTextColor(153,153,153,255)
+            surface.SetFont("funnitexttiny")
+        end
+    end
+
+    if (showspeed:GetBool() and ply:IsValid() and ply:Alive() and not melee) then
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.865 + vp.x, 40 * scale, scale * 25)
+        DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25, math.max(255 - hidealpha, 2))
+    
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25)
+    
+        if roundvel > 738.6 then
+            surface.SetDrawColor(252, 202, 95)
+        else
+            surface.SetDrawColor(corner_color_c)
+        end
+        surface.DrawRect(scrw * 0.89 + vp.z, scrh * 0.873 + vp.x, math.Clamp(roundvel / 7.034632, 0, 105), scale * 6)   
+        speedtxt = math.Round(roundvel * 0.06858125) .. "km/h" 
+        --surface.SetFont(funnitexttiny)
+        local speedw, speedh = surface.GetTextSize(speedtxt)
+        if roundvel > 738.6 then
+            surface.SetTextColor(252, 202, 95)
+        else
+            surface.SetTextColor(text_color)
+        end
+        surface.SetTextPos(scrw * 0.986 - speedw + vp.z, scrh * 0.87 + vp.x)
+        surface.DrawText(math.Round(roundvel * 0.06858125) .. "km/h") 
+    elseif (showspeed:GetBool() and ply:IsValid() and ply:Alive()) then
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.95 + vp.x, 40 * scale, scale * 25)
+        DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.95 + vp.x, scale * bgpadding, scale * 25, math.max(255 - hidealpha, 2))
+    
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.95 + vp.x, scale * bgpadding, scale * 25)
+    
+        if roundvel > 738.6 then
+            surface.SetDrawColor(252, 202, 95)
+        else
+            surface.SetDrawColor(corner_color_c)
+        end
+        surface.DrawRect(scrw * 0.89 + vp.z, scrh * 0.961 + vp.x, math.Clamp(roundvel / 7.034632, 0, 105), scale * 6)   
+        speedtxt = math.Round(roundvel * 0.06858125) .. "km/h"
+        local speedw, speedh = surface.GetTextSize(speedtxt)
+        if roundvel > 738.6 then
+            surface.SetTextColor(252, 202, 95)
+        else
+            surface.SetTextColor(text_color)
+        end
+        surface.SetTextPos(scrw * 0.986 - speedw + vp.z, scrh * 0.955 + vp.x)
+        surface.DrawText(math.Round(roundvel * 0.06858125) .. "km/h")
     end
 end
 
