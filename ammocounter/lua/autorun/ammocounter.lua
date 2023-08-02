@@ -4,9 +4,11 @@
 --Uses some ARC9 code. See line 167 for details.
 local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
-local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving", 0, 1)
+local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving (why the frick would you enable this?)", 0, 1)
 local showspeed = CreateClientConVar("PKAmmoDisp_Speedometer", "0", true, false, "Show a speedometer at the bottom of the display", 0, 1)
-local ProcessFiremode = CreateClientConVar("PKAmmoDisp_ProcessFiremode", "0", true, false, "Process the firemode before displaying. I do not recommend using this./nFUN FACT: It appears you can't directly get what firemode you're using for ArcCW weapons, so this WAS used for consistency.", 0, 1)
+local ProcessFiremode = CreateClientConVar("PKAmmoDisp_ProcessFiremode", "0", true, false, "Process the firemode before displaying. I do not recommend using this./n FUN FACT: It appears you can't directly get what firemode you're using for ArcCW weapons, so this WAS used for consistency.", 0, 1)
+--CreateClientConVar("PKAmmoDisp_DeadzoneX", "0", true, false, "Use this HUD while playing on your HDTV!", 0, 0.5)
+--CreateClientConVar("PKAmmoDisp_DeadzoneY", "0", true, false, "Use this HUD while playing on your HDTV!", 0, 0.5)
 
 function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflicts.
     local key = input.LookupBinding(bind)
@@ -19,13 +21,18 @@ function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflict
 end
 
 function DoesConVarExist(luavar)
-    local var = GetConVar(luavar):GetInt()
+    local var = GetConVar(luavar)
 
     if !var then
         return false
     else
         return true
     end
+end
+
+local IsPlayingBeatrun = false
+if DoesConVarExist("Beatrun_FOV") then -- This is my best fricking idea on how to detect non-vanilla Beatrun.
+    IsPlayingBeatrun = true
 end
 
 local ARC9Installed = false
@@ -248,6 +255,22 @@ local function funnihud()
 
     local text_color = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_TextColor"))
     text_color.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or text_color.a
+    local othertext = string.ToColor("255 255 255 255")
+    othertext.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or othertext.a
+    local ammobarcolor = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2)
+    ammobarcolor.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or ammobarcolor.a
+
+    local armorbackground = string.ToColor("110 110 110 128")
+    armorbackground.a = dynamic:GetBool() and math.max(255 - hidealpha, 50) or armorbackground.a
+    local ammolowcolor = string.ToColor("0 0 0 230")
+    ammolowcolor.a = dynamic:GetBool() and math.max(230 - hidealpha, 50) or ammolowcolor.a
+    local ammolowcolor1 = string.ToColor("0 0 0 100")
+    ammolowcolor1.a = dynamic:GetBool() and math.max(100 - hidealpha, 50) or ammolowcolor.a
+
+    armorsegment = math.Clamp(ply:Armor(), 0, 25)
+    armorsegment1 = math.Clamp(ply:Armor() - 25, 0, 25)
+    armorsegment2 = math.Clamp(ply:Armor() - 50, 0, 25)
+    armorsegment3 = math.Clamp(ply:Armor() - 75, 0, 25)
 
 	if hidden:GetInt() > 1 then return end
     
@@ -409,12 +432,12 @@ local function funnihud()
     }    
     
     if (not hidden:GetBool() and ply:IsValid() and ply:Alive() and not melee) then
-        surface.SetDrawColor(corner_color_c)
-        surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.865 + vp.x, 40 * scale, scale * 25)
-        DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25, math.max(255 - hidealpha, 2))
+        --surface.SetDrawColor(corner_color_c)
+        --surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.865 + vp.x, 40 * scale, scale * 25)
+        --DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25, math.max(255 - --hidealpha, 2))
 
-        surface.SetDrawColor(corner_color_c)
-        surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25)
+        --surface.SetDrawColor(corner_color_c)
+        --surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25)
 
         if SpecialWeaponFiremode[ply:GetActiveWeapon()] then
             pkad_firemode_text = SpecialCorrespondingFiremode[ply:GetActiveWeapon()]
@@ -505,7 +528,7 @@ local function funnihud()
         --print(pkad_firemode_text)
 
         -- Are we using altfire?
-        if ArcCWInstalled and isweparccw and string.match(pkad_firemode_text, "UB") then -- Extra precautions
+        if ArcCWInstalled and isweparccw and string.match(pkad_firemode_text, "UB") and not pkad_firemode_text == "DOUBLE-ACTION" then -- Extra precautions
             pkad_firemode_text = "SWITCH"
             ActivePrimaryFire = false
         elseif ARC9Installed and a9 and weapon:GetUBGL() then
@@ -544,16 +567,16 @@ local function funnihud()
             surface.SetTextPos(rscrbor - resrvw + vp.z, scrh * 0.91 + vp.x)
             if (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
                 if ActivePrimaryFire == false then
-                    surface.SetTextColor(153,153,153,255)
+                    surface.SetTextColor(153,153,153,text_color.a)
                 else
                     surface.SetTextColor(text_color)
                 end
                 surface.DrawText(ammo1mag)
             elseif infmag2 == 0 then
                 if ActivePrimaryFire == true then
-                    surface.SetTextColor(255,0,0,255)
+                    surface.SetTextColor(200,0,0,text_color.a)
                 else
-                    surface.SetTextColor(153,0,0,255)
+                    surface.SetTextColor(153,0,0,text_color.a)
                 end
                 surface.DrawText(ammo1mag)
                 surface.SetTextColor(text_color)
@@ -564,9 +587,9 @@ local function funnihud()
             surface.SetTextPos(rscrbor - resrvw - magw + vp.z, scrh * 0.9 + vp.x)
             if ammo1 < weapon:GetMaxClip1() / 3 then
                 if ActivePrimaryFire == true then
-                    surface.SetTextColor(255,0,0,255)
+                    surface.SetTextColor(255,0,0,text_color.a)
                 else
-                    surface.SetTextColor(153,0,0,255)
+                    surface.SetTextColor(153,0,0,text_color.a)
                 end
                 surface.DrawText(ammo1)
                 surface.SetTextColor(text_color)
@@ -575,22 +598,22 @@ local function funnihud()
                 if ActivePrimaryFire == true then
                     surface.SetTextColor(text_color)
                 else
-                    surface.SetTextColor(153,153,153,255)
+                    surface.SetTextColor(153,153,153,text_color.a)
                 end
                 surface.DrawText(ammo1)
                 surface.SetTextColor(text_color)
             end
 
             if ammo1 ~= -1 and ammo1 < (weapon:GetMaxClip1() / 3) then
-                surface.SetDrawColor(200, 30, 30, 100)
+                surface.SetDrawColor(100, 50, 50, ammolowcolor1.a)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
-                surface.SetDrawColor(255, 0, 0, 230)
+                surface.SetDrawColor(255, 0, 0, ammolowcolor.a)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             elseif ammo1 ~= -1 then
-                surface.SetDrawColor(10, 50, 50, 100)
+                surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
-                surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(ammobarcolor)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             end
@@ -607,16 +630,16 @@ local function funnihud()
                 surface.SetTextPos(scrw * 0.86 - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if infmag3 == 0 then
                     if ActivePrimaryFire then
-                        surface.SetTextColor(153,0,0,255)
+                        surface.SetTextColor(153,0,0,text_color.a)
                     else
-                        surface.SetTextColor(255,0,0,255)
+                        surface.SetTextColor(255,0,0,text_color.a)
                     end
                     surface.DrawText(infmag3)
                     --surface.SetTextColor(text_color)
                     --ammobarcolor = "220 0 0 255"
                 elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
                     if ActivePrimaryFire == true then
-                        surface.SetTextColor(153,153,153,255)
+                        surface.SetTextColor(153,153,153,text_color.a)
                     else
                         surface.SetTextColor(text_color)
                     end
@@ -624,11 +647,11 @@ local function funnihud()
                 end
 
                 if infmag3 == 0 then
-                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.SetDrawColor(255, 0, 0, ammolowcolor.a)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
-                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                    surface.SetDrawColor(ammobarcolor)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
@@ -644,14 +667,14 @@ local function funnihud()
                 surface.SetTextPos(scrw * 0.86 - resrv2w + vp.z, scrh * 0.91 + vp.x)
                 if infmag3 == 0 then
                     if ActivePrimaryFire == true then
-                        surface.SetTextColor(153,0,0,255)
+                        surface.SetTextColor(153,0,0,text_color.a)
                     else
-                        surface.SetTextColor(255,0,0,255)
+                        surface.SetTextColor(255,0,0,text_color.a)
                     end
                     surface.DrawText(ammo2mag)
                 else
                     if ActivePrimaryFire == true then
-                        surface.SetTextColor(153,153,153,255)
+                        surface.SetTextColor(153,153,153,text_color.a)
                     else
                         surface.SetTextColor(text_color)
                     end
@@ -663,15 +686,15 @@ local function funnihud()
                 surface.SetTextPos(scrw * 0.86 - resrv2w - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if ammo2 < weapon:GetMaxClip2() / 3 then
                     if ActivePrimaryFire == true then
-                        surface.SetTextColor(153,0,0,255)
+                        surface.SetTextColor(153,0,0,text_color.a)
                     else
-                        surface.SetTextColor(255,0,0,255)
+                        surface.SetTextColor(255,0,0,text_color.a)
                     end
                     surface.DrawText(ammo2)
                     --ammobarcolor = "220 0 0 255"
                 elseif (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
                     if ActivePrimaryFire == true then
-                        surface.SetTextColor(153,153,153,255)
+                        surface.SetTextColor(153,153,153,text_color.a)
                     else
                         surface.SetTextColor(text_color)
                     end
@@ -679,15 +702,15 @@ local function funnihud()
                 end
 
                 if ammo2 ~= -1 and ammo2 < (weapon:GetMaxClip2() / 3) then
-                    surface.SetDrawColor(200, 30, 30, 100)
+                    surface.SetDrawColor(100, 50, 50, ammolowcolor1.a)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
-                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.SetDrawColor(255, 0, 0, ammolowcolor.a)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 elseif ammo2 ~= -1 or (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
-                    surface.SetDrawColor(10, 50, 50, 100)                    
+                    surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)                    
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
-                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                    surface.SetDrawColor(ammobarcolor)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
@@ -711,9 +734,9 @@ local function funnihud()
             surface.SetTextPos(rscrbor - magw + vp.z, scrh * 0.9 + vp.x)
             if infmag2 == 0 then
                 if ActivePrimaryFire then
-                    surface.SetTextColor(153,0,0,255)
+                    surface.SetTextColor(153,0,0,text_color.a)
                 else
-                    surface.SetTextColor(255,0,0,255)
+                    surface.SetTextColor(255,0,0,text_color.a)
                     --ammobarcolor = "220 0 0 255"
                 end
                 surface.DrawText(infmag2)
@@ -723,11 +746,11 @@ local function funnihud()
             end
 
             if infmag2 == 0 then
-                surface.SetDrawColor(255, 0, 0, 230)
+                surface.SetDrawColor(255, 0, 0, ammolowcolor.a)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             else
-                surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                surface.SetDrawColor(ammobarcolor)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.94 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
             end
@@ -743,7 +766,7 @@ local function funnihud()
                 local mag2w, mag2h = surface.GetTextSize(infmag3)
                 surface.SetTextPos(scrw * 0.86 - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if infmag3 == 0 then
-                    surface.SetTextColor(255,0,0,255)
+                    surface.SetTextColor(255,0,0,text_color.a)
                     surface.DrawText(infmag3)
                     surface.SetTextColor(text_color)
                     --ammobarcolor = "220 0 0 255"
@@ -753,11 +776,11 @@ local function funnihud()
                 end
 
                 if infmag2 == 0 then
-                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.SetDrawColor(255, 0, 0, ammolowcolor.a)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 elseif (ARC9Installed and a9 and inf_reserve) or infmag3 > 0 then
-                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                    surface.SetDrawColor(ammobarcolor)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
@@ -772,7 +795,7 @@ local function funnihud()
                 local resrv2w, resrv2h = surface.GetTextSize(ammo2mag)
                 surface.SetTextPos(scrw * 0.86 - resrv2w + vp.z, scrh * 0.91 + vp.x)
                 if infmag3 == 0 then
-                    surface.SetTextColor(255,0,0,255)
+                    surface.SetTextColor(255,0,0,text_color.a)
                     surface.DrawText(ammo2mag)
                     surface.SetTextColor(text_color)
                 else
@@ -783,7 +806,7 @@ local function funnihud()
                 local mag2w, mag2h = surface.GetTextSize(ammo2)
                 surface.SetTextPos(scrw * 0.86 - resrv2w - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if ammo2 < weapon:GetMaxClip2() / 3 then
-                    surface.SetTextColor(255,0,0,255)
+                    surface.SetTextColor(255,0,0,text_color.a)
                     surface.DrawText(ammo2)
                     surface.SetTextColor(text_color)
                     --ammobarcolor = "220 0 0 255"
@@ -793,25 +816,25 @@ local function funnihud()
                 end
 
                 if ammo2 ~= -1 and ammo2 < (weapon:GetMaxClip2() / 3) then
-                    surface.SetDrawColor(200, 30, 30, 100)
+                    surface.SetDrawColor(100, 50, 50, ammolowcolor1.a)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
-                    surface.SetDrawColor(255, 0, 0, 230)
+                    surface.SetDrawColor(255, 0, 0, ammolowcolor.a)
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 elseif ammo2 ~= -1 or (ARC9Installed and a9 and inf_reserve) or infmag2 > 0 then
-                    surface.SetDrawColor(10, 50, 50, 100)                    
+                    surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)                    
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
-                    surface.SetDrawColor(string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_AmmobarColor")), math.max(255 - hidealpha, 2))
+                    surface.SetDrawColor()
                     surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * magrate2, scale * 5)
                     surface.SetDrawColor(corner_color_c)
                 end
             end
         end
 
-        if melee then
-            surface.SetDrawColor(255,255,255,255)
-            surface.DrawRect(256, 256, 256, 256)
-        end
+        --if melee then
+        --    surface.SetDrawColor(255,255,255,255)
+        --    surface.DrawRect(256, 256, 256, 256)
+        --end
 
         if ArcCWInstalled and isweparccw and ProcessFiremode:GetBool() then
             for i=1,#ArcPossibleFiremodes do
@@ -860,10 +883,10 @@ local function funnihud()
         pkad_processed_firemode_text = pkad_firemode_text
          
         if ActivePrimaryFire == false or pkad_processed_firemode_text == "SWITCH" then
-            surface.SetTextColor(255,255,255,255)
+            surface.SetTextColor(255,255,255,othertext.a)
             surface.SetFont("funnitexttiny")
         else
-            surface.SetTextColor(153,153,153,255)
+            surface.SetTextColor(153,153,153,othertext.a)
             surface.SetFont("funnitexttiny")
         end
         if isweparccw and ActivePrimaryFire == false then
@@ -881,7 +904,7 @@ local function funnihud()
         local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
         local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
 
-        local ubglkey = nil
+        local ubglkey = "NONE"
         if ARC9Installed and a9 and not IsInputBound("+arc9_ubgl") then
             ubglkey = "[" .. usekey .."]+" .. "[" .. attack2 .. "]"
         elseif ARC9Installed and a9 and IsInputBound("+arc9_ubgl") then
@@ -893,11 +916,11 @@ local function funnihud()
         end
 
         if HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
-            surface.SetTextColor(255,255,255,255)
+            surface.SetTextColor(255,255,255,othertext.a)
             surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
             surface.DrawText(ubglkey)
         elseif HasAltFire and ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
-            surface.SetTextColor(255,255,255,255)
+            surface.SetTextColor(255,255,255,othertext.a)
             surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
             surface.DrawText(ubglkey)
         end
@@ -914,7 +937,7 @@ local function funnihud()
                 altfiremode = "SWITCH"
                 altmodew, altmodeh = surface.GetTextSize(altfiremode)
             else
-                surface.SetTextColor(153,153,153,255)
+                surface.SetTextColor(153,153,153,othertext.a)
                 altfiremode = "UNDERBARREL"
                 altmodew, altmodeh = surface.GetTextSize(altfiremode)
             end
@@ -926,18 +949,20 @@ local function funnihud()
         ActivePrimaryFire = false 
         pkad_processed_firemode_text = "SWITCH"
         if ActivePrimaryFire == false or pkad_processed_firemode_text == "SWITCH" then
-            surface.SetTextColor(255,255,255,255)
+            surface.SetTextColor(255,255,255,othertext.a)
             surface.SetFont("funnitexttiny")
         else
-            surface.SetTextColor(153,153,153,255)
+            surface.SetTextColor(153,153,153,othertext.a)
             surface.SetFont("funnitexttiny")
         end
     end
 
     if (showspeed:GetBool() and ply:IsValid() and ply:Alive() and not melee) then
-        surface.SetDrawColor(corner_color_c)
-        surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.865 + vp.x, 40 * scale, scale * 25)
-        DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25, math.max(255 - hidealpha, 2))
+        if showspeed:GetBool() then -- bruh GMod still renders this for some reason
+            surface.SetDrawColor(corner_color_c)
+            surface.DrawRect(scrw * 0.886 + scale * bgpadding + vp.z, scrh * 0.865 + vp.x, 40 * scale, scale * 25)
+            DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25, math.max(255 - hidealpha, 2))
+        end
     
         surface.SetDrawColor(corner_color_c)
         surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.865 + vp.x, scale * bgpadding, scale * 25)
@@ -947,12 +972,12 @@ local function funnihud()
         else
             surface.SetDrawColor(corner_color_c)
         end
-        surface.DrawRect(scrw * 0.89 + vp.z, scrh * 0.873 + vp.x, math.Clamp(roundvel / 7.034632, 0, 105), scale * 6)   
+        surface.DrawRect(scrw * 0.89 + vp.z, scrh * 0.873 + vp.x, scale * math.Clamp(roundvel / 7.034632, 0, 105), scale * 6)   
         speedtxt = math.Round(roundvel * 0.06858125) .. "km/h" 
         --surface.SetFont(funnitexttiny)
         local speedw, speedh = surface.GetTextSize(speedtxt)
         if roundvel > 738.6 then
-            surface.SetTextColor(252, 202, 95)
+            surface.SetTextColor(252, 202, 95, othertext.a)
         else
             surface.SetTextColor(text_color)
         end
@@ -967,20 +992,80 @@ local function funnihud()
         surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.95 + vp.x, scale * bgpadding, scale * 25)
     
         if roundvel > 738.6 then
-            surface.SetDrawColor(252, 202, 95)
+            surface.SetDrawColor(252, 202, 95, othertext.a)
         else
             surface.SetDrawColor(corner_color_c)
         end
-        surface.DrawRect(scrw * 0.89 + vp.z, scrh * 0.961 + vp.x, math.Clamp(roundvel / 7.034632, 0, 105), scale * 6)   
+        surface.DrawRect(scrw * 0.89 + vp.z, scrh * 0.961 + vp.x, scale * math.Clamp(roundvel / 7.034632, 0, 105), scale * 6)   
         speedtxt = math.Round(roundvel * 0.06858125) .. "km/h"
         local speedw, speedh = surface.GetTextSize(speedtxt)
         if roundvel > 738.6 then
-            surface.SetTextColor(252, 202, 95)
+            surface.SetTextColor(252, 202, 95, othertext.a)
         else
             surface.SetTextColor(text_color)
         end
         surface.SetTextPos(scrw * 0.986 - speedw + vp.z, scrh * 0.955 + vp.x)
         surface.DrawText(math.Round(roundvel * 0.06858125) .. "km/h")
+    end
+
+    if ply:Armor() > 0 then
+        local BlurHeight = 0.862
+        local VerticalBars = 0.8675
+        local TextHeight = 0.864
+        if IsPlayingBeatrun and GetConVar("Beatrun_HUDHidden"):GetInt() == 1 then
+            BlurHeight = 0.925
+            VerticalBars = 0.9295
+            TextHeight = 0.927
+        elseif IsPlayingBeatrun and GetConVar("Beatrun_HUDHidden"):GetInt() == 2 then
+            BlurHeight = 0.95
+            VerticalBars = 0.9545
+            TextHeight = 0.952
+        end
+        surface.SetDrawColor(corner_color_c)
+	    surface.DrawRect(-20 * scale + vp.z, scrh * BlurHeight + vp.x, scale * 40, scale * 26)
+	    DrawBlurRect2(scale * 20 + vp.z, scrh * BlurHeight + vp.x, scale * 200, scale * 26, math.max(255 - hidealpha, 2))
+        surface.SetDrawColor(corner_color_c)
+        surface.DrawOutlinedRect(scale * 20 + vp.z, scrh * BlurHeight + vp.x, scale * 200, scale * 26)
+        
+        surface.SetDrawColor(110,110,110,armorbackground.a)
+        surface.DrawRect(24 * scale + vp.z, scrh * VerticalBars + vp.x, scale * 35, scale *14)
+        surface.DrawRect(62 * scale + vp.z, scrh * VerticalBars + vp.x, scale * 35, scale* 14)
+        surface.DrawRect(100 * scale + vp.z, scrh * VerticalBars + vp.x, scale * 35, scale* 14)
+        surface.DrawRect(138 * scale + vp.z, scrh * VerticalBars + vp.x, scale * 35, scale * 14)
+
+        if ply:Armor() > 15 then
+            surface.SetDrawColor(corner_color_c)
+        else
+            surface.SetDrawColor(230,0,0,corner_color_c.a)
+        end
+        surface.DrawRect(24 * scale + vp.z, scrh * VerticalBars + vp.x, scale * (1.40 * armorsegment), scale * 14)
+        surface.DrawRect(62 * scale + vp.z, scrh * VerticalBars + vp.x, scale * (1.40 * armorsegment1), scale * 14)
+        surface.DrawRect(100 * scale + vp.z, scrh * VerticalBars + vp.x, scale * (1.40 * armorsegment2), scale * 14)
+        surface.DrawRect(138 * scale + vp.z, scrh * VerticalBars + vp.x, scale * (1.40 * armorsegment3), scale * 14)
+        
+        armor_color = nil
+        if ply:Armor() > 15 then
+            armor_color = text_color
+        else
+            armor_color = string.ToColor("230 0 0 " .. corner_color_c.a)
+        end
+        if ply:Armor() < 10 then
+            surface.SetTextPos(182 * scale + vp.z, scrh * TextHeight + vp.x)
+            surface.SetTextColor(120,120,120,armorbackground.a)
+            surface.DrawText("00")
+            surface.SetTextColor(armor_color)
+            surface.DrawText(ply:Armor())
+        elseif ply:Armor() < 100 then
+            surface.SetTextPos(182 * scale + vp.z, scrh * TextHeight + vp.x)
+            surface.SetTextColor(120,120,120,armorbackground.a)
+            surface.DrawText("0")
+            surface.SetTextColor(armor_color)
+            surface.DrawText(ply:Armor())
+        else
+            surface.SetTextPos(182 * scale + vp.z, scrh * TextHeight + vp.x)
+            surface.SetTextColor(armor_color)
+            surface.DrawText(ply:Armor())
+        end
     end
 end
 

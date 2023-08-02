@@ -4,10 +4,12 @@ My attempt at making an ammo display that works well with Beatrun. Options can b
 **No, Spawnmenu options *won't* be added. Do not ask for it.**
 
 ## Features
+- Fully clientside, works with any server that has `sv_allowcslua` allowed
 - Primary ammo display, with viewpunch offset and firemode display
 - Secondary/alt-fire ammo display, with mag-style altfire support *(why does no other HUD support this properly?)*
 - Support for mag-less weapons
-- Fully clientside, works with any server that has `sv_allowcslua` allowed
+- Armor display because Beatrun doesn't have one
+- Optional speedometer, works outside of Beatrun too
 
 ## To be done
 Just check the Issues tab, will ya?
