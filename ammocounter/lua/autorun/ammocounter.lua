@@ -2,7 +2,7 @@
 
 -- Also yeah I should use a GLua linter.
 -- This rewrite is meant to make the code more readable than the original was as much as I can,
--- and make it easier to work with. (also just 629 lines wow)
+-- and make it easier to work with. (also just 635 lines wow)
 local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving (why the frick would you enable this?)", 0, 1)
@@ -286,6 +286,8 @@ local function PKAD_Draw()
 	if ArcCWInstalled then
 		isweparccw = Weapon.ArcCW
 	end
+
+    local InfiniteReserve = nil
 	
 	-- Infinite ammo detection. Works for ARC9 and ArcCW.
 	if isarc9 and (Weapon:GetInfiniteAmmo() or GetConVar("arc9_infinite_ammo"):GetBool()) then
@@ -356,38 +358,38 @@ local function PKAD_Draw()
 		pkad_firemode_text = Weapon:GetFiremodeName()
 
 		pkad_firemode_text = string.upper(pkad_firemode_text)  
-	elseif Weapon:IsScripted() then
-		if !Weapon.Primary.Automatic then
-			pkad_firemode_text = "SEMI AUTO"
-		end
+	elseif ply:Alive() then
+        if Weapon:IsScripted() then
+		    if !Weapon.Primary.Automatic then
+		    	pkad_firemode_text = "SEMI AUTO"
+		    end
 
-		if Weapon.ThreeRoundBurst then
-			pkad_firemode_text = "3-BURST"
-		end
+		    if Weapon.ThreeRoundBurst then
+		    	pkad_firemode_text = "3-BURST"
+		    end
 
-		if Weapon.TwoRoundBurst then
-			pkad_firemode_text = "2-BURST"
-		end
+		    if Weapon.TwoRoundBurst then
+		    	pkad_firemode_text = "2-BURST"
+		    end
 
-		if Weapon.GetSafe then
-			if Weapon:GetSafe() then
-				pkad_firemode_text = "SAFETY"
-			end
-		end
+		    if Weapon.GetSafe then
+		    	if Weapon:GetSafe() then
+		    		pkad_firemode_text = "SAFETY"
+		    	end
+		    end
 
-		if isfunction(Weapon.Safe) then
-			if Weapon:Safe() then
-				pkad_firemode_text = "SAFETY"
-			end
-		end
+		    if isfunction(Weapon.Safe) then
+		    	if Weapon:Safe() then
+		    		pkad_firemode_text = "SAFETY"
+		    	end
+		    end
 
-		if isfunction(Weapon.Safety) then
-			if Weapon:Safety() then
-				pkad_firemode_text = "SAFETY"
-			end
-		end
-	else
-		if !VanillaAutomatics[Weapon:GetClass()] then
+		    if isfunction(Weapon.Safety) then
+		    	if Weapon:Safety() then
+		    		pkad_firemode_text = "SAFETY"
+		    	end
+		    end
+		elseif !VanillaAutomatics[Weapon:GetClass()] then
 			pkad_firemode_text = "SEMI AUTO"
 		end
 	end
@@ -429,10 +431,12 @@ local function PKAD_Draw()
         MagBarColor = ammobarcolor
     end
 
-    if PrimaryReserve == 0 and not InfiniteReserve then
-        ReserveColor = ammolowcolor
-    else
+    if PrimaryReserve != 0 then
         ReserveColor = text_color
+    elseif InfiniteReserve then
+        ReserveColor = text_color
+    else
+        ReserveColor = ammolowcolor
     end
     
     if SecondaryAmmo < SecondaryMag / 3 and not BottomlessMag then
@@ -443,10 +447,12 @@ local function PKAD_Draw()
         AltMagBarColor = ammobarcolor
     end
 
-    if SecondaryReserve == 0 and not InfiniteReserve then
-        AltReserveColor = ammolowcolor
-    else
+    if SecondaryReserve != 0 then
         AltReserveColor = text_color
+    elseif InfiniteReserve then
+        AltReserveColor = text_color
+    else
+        AltReserveColor = ammolowcolor
     end
 
 	local armorsegment = math.Clamp(ply:Armor(), 0, 25)
@@ -583,10 +589,10 @@ local function PKAD_Draw()
                 surface.DrawText(SecondaryAmmo)
 
                 surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)                    
-                surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale, scale * 5)
+                surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale, scale * 5)
 
                 surface.SetDrawColor(AltMagBarColor)
-                surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.94 + 1 + vp.x, 100 * scale * AltFillRatio, scale * 5)
+                surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale * AltFillRatio, scale * 5)
             end
         end
 	end
