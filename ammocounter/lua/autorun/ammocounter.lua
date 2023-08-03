@@ -233,12 +233,6 @@ local function PKAD_Draw()
 		AltFillRatio = SecondaryAmmo / SecondaryMag
 	end
 
-	surface.SetFont("PKAD_BigText")
-	local debugw = surface.GetTextSize(PrimaryAmmo .. " | " .. SecondaryAmmo .. " | " .. PrimaryMag .. " | " .. SecondaryMag .. " | " .. OverCapacity .. " | " .. OverAltCapacity .. " | " .. PrimaryReserve .. " | " .. SecondaryReserve)
-	surface.SetTextPos(scrw * 0.5 - debugw * 0.5, scrh * 0.6)
-	surface.SetDrawColor(255,255,255,255)
-	surface.DrawText(PrimaryAmmo .. " | " .. SecondaryAmmo .. " | " .. PrimaryMag .. " | " .. SecondaryMag .. " | " .. OverCapacity .. " | " .. OverAltCapacity .. " | " .. PrimaryReserve .. " | " .. SecondaryReserve)
-
 	local ActivePrimaryFire = true -- Self-explanatory.
 
 	if ARC9Installed then function GetFiremodeName()
@@ -604,18 +598,18 @@ hook.Add( "HUDPaint", "drawsegment", function( name )
     local scale = ScrH() / 1080
 
     if debug:GetBool() then
-        local Weapon = LocalPlayer():GetActiveWeapon()
-        if IsValid(Weapon) then
-            WeaponClass = Weapon:GetClass()
-            PrimaryAmmo = math.Clamp(Weapon:Clip1(), 0, Weapon:GetMaxClip1())
-            SecondaryAmmo = math.Clamp(Weapon:Clip2(), 0, Weapon:GetMaxClip2())
-            PrimaryMag = Weapon:GetMaxClip1()
-            SecondaryMag = Weapon:GetMaxClip2()
-            PrimaryReserve = math.Clamp(ply:GetAmmoCount(Weapon:GetPrimaryAmmoType()), 0, 9999)
-            SecondaryReserve = math.Clamp(ply:GetAmmoCount(Weapon:GetSecondaryAmmoType()), 0, 9999)
-            OverCapacity = math.Clamp(Weapon:Clip1() - Weapon:GetMaxClip1(), 0, 9999)
-            OverAltCapacity = math.Clamp(Weapon:Clip2() - Weapon:GetMaxClip2(), 0, 9999)
-            if Weapon:GetSecondaryAmmoType() != -1 then
+        local Wepon = LocalPlayer():GetActiveWeapon()
+        if IsValid(Wepon) then
+            WeaponClass = Wepon:GetClass()
+            PrimaryAmmo = math.Clamp(Wepon:Clip1(), 0, Wepon:GetMaxClip1())
+            SecondaryAmmo = math.Clamp(Wepon:Clip2(), 0, Wepon:GetMaxClip2())
+            PrimaryMag = Wepon:GetMaxClip1()
+            SecondaryMag = Wepon:GetMaxClip2()
+            PrimaryReserve = math.Clamp(LocalPlayer():GetAmmoCount(Wepon:GetPrimaryAmmoType()), 0, 9999)
+            SecondaryReserve = math.Clamp(LocalPlayer():GetAmmoCount(Wepon:GetSecondaryAmmoType()), 0, 9999)
+            OverCapacity = math.Clamp(Wepon:Clip1() - Wepon:GetMaxClip1(), 0, 9999)
+            OverAltCapacity = math.Clamp(Wepon:Clip2() - Wepon:GetMaxClip2(), 0, 9999)
+            if Wepon:GetSecondaryAmmoType() != -1 then
                 HasAltFire = true
             end
             MagFillRatio = PrimaryAmmo / PrimaryMag
