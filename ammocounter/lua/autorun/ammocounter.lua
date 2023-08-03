@@ -7,8 +7,13 @@ local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HU
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving (why the frick would you enable this?)", 0, 1)
 local showspeed = CreateClientConVar("PKAmmoDisp_Speedometer", "0", true, false, "Show a speedometer at the bottom of the display", 0, 1)
 local ProcessFiremode = CreateClientConVar("PKAmmoDisp_ProcessFiremode", "0", true, false, "Process the firemode before displaying. I do not recommend using this./n FUN FACT: It appears you can't directly get what firemode you're using for ArcCW weapons, so this WAS used for consistency.", 0, 1)
+local PerfDisplay = CreateClientConVar("PKAmmoDisp_PerfDisplay", "1", true, false, "Displays some miscellaneous stuff on your monitor/game window's top right.")
+local NoBlur = CreateClientConVar("PKAmmoDisp_NoBlur", "0", true, false, "Disables blur effects. Only works on DX9+ (Windows) and Linux, as blur doesn't work with DX8 and below. Gives like 2fps or something. Does not affect Beatrun.")
 --CreateClientConVar("PKAmmoDisp_DeadzoneX", "0", true, false, "Use this HUD while playing on your HDTV!", 0, 0.5)
 --CreateClientConVar("PKAmmoDisp_DeadzoneY", "0", true, false, "Use this HUD while playing on your HDTV!", 0, 0.5)
+
+local scale = ScrH() / 1080
+local framerate = 0
 
 function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflicts.
     local key = input.LookupBinding(bind)
@@ -119,7 +124,7 @@ function PKAmmoDisp_InitFonts()
     	outline = false,
     	symbol = false,
     	weight = 500,
-    	size = ScreenScale(7)
+    	size = 21 * scale
     })
 
     surface.CreateFont("funnitexttiny", {
@@ -137,7 +142,7 @@ function PKAmmoDisp_InitFonts()
     	outline = false,
     	symbol = false,
     	weight = 500,
-    	size = ScreenScale(6)
+    	size = 18 * scale
     })
 
     surface.CreateFont("funnitexthuge", {
@@ -155,7 +160,25 @@ function PKAmmoDisp_InitFonts()
     	outline = false,
     	symbol = false,
     	weight = 250,
-    	size = ScreenScale(12)
+    	size = 36 * scale
+    })
+
+    surface.CreateFont("DebugTextScale", {
+        shadow = false,
+    	blursize = 0,
+    	underline = false,
+    	rotary = false,
+    	strikeout = false,
+    	additive = false,
+    	antialias = true,
+    	extended = false,
+    	scanlines = 0,
+    	font = "x14y24pxHeadUpDaisy", -- WE ARE NOT DEALING WITH LICENSING COURIER NEW
+    	italic = false,
+    	outline = false,
+    	symbol = false,
+    	weight = 250,
+    	size = 15 * scale
     })
 end
 
@@ -164,7 +187,9 @@ PKAmmoDisp_InitFonts()
 hook.Add( "OnScreenSizeChanged", "UpdateFonts", function()
     PKAmmoDisp_InitFonts()
 end )
-    
+
+print(ScreenScale(7) .. " | " .. ScreenScale(6) .. " | "  .. ScreenScale(12))
+
 function GetCurrentFiremodeTable()
     local fm = self:GetFiremode()
 
@@ -179,25 +204,28 @@ end
 local blur = Material("pp/blurscreen")
 
 local function DrawBlurRect2(x, y, w, h, a)
-	if render.GetDXLevel() < 90 then return end
+    if render.GetDXLevel() < 90 or GetConVar("PKAmmoDisp_NoBlur"):GetBool() then
+        surface.SetDrawColor(80,80,80,50)
+        surface.DrawRect(x,y,w,h)
+    else
+        local X = 0
+	    local Y = 0
 
-	local X = 0
-	local Y = 0
+	    surface.SetDrawColor(255, 255, 255, a)
+	    surface.SetMaterial(blur)
 
-	surface.SetDrawColor(255, 255, 255, a)
-	surface.SetMaterial(blur)
+	    for i = 1, 2 do
+	    	blur:SetFloat("$blur", i / 3 * 5)
+	    	blur:Recompute()
 
-	for i = 1, 2 do
-		blur:SetFloat("$blur", i / 3 * 5)
-		blur:Recompute()
+	    	render.UpdateScreenEffectTexture()
+	    	render.SetScissorRect(x, y, x + w, y + h, true)
 
-		render.UpdateScreenEffectTexture()
-		render.SetScissorRect(x, y, x + w, y + h, true)
+	    	surface.DrawTexturedRect(X * -1, Y * -1, ScrW(), ScrH())
 
-		surface.DrawTexturedRect(X * -1, Y * -1, ScrW(), ScrH())
-
-		render.SetScissorRect(0, 0, 0, 0, false)
-	end
+	    	render.SetScissorRect(0, 0, 0, 0, false)
+	    end
+    end
 end
 
 local hidealpha = 0
@@ -207,7 +235,10 @@ local function funnihud()
 	local scrw = ScrW()
 	local scrh = ScrH()
 
-    local scale = ScrH() / 1080
+    local lastframetime = (math.floor(math.Round(FrameTime(), 4) * 1000))
+    framerate = math.Round(math.Approach(framerate, math.ceil(1 / FrameTime()), FrameTime() * 10000))
+
+    scale = ScrH() / 1080
 
     local ActivePrimaryFire = true -- Self-explanatory.
 
@@ -395,6 +426,16 @@ local function funnihud()
         UsesAltMag = 1
     end
 
+    if ammo1 > max1mag then
+        ammo1mag = ("+" .. ammo1 - max1mag .. "/" .. math.Clamp(infmag2, 0, 9999))
+    end
+    if HasAltFire and UsesAltMag == 1 then
+        if weapon:Clip2() > weapon:GetMaxClip2() then -- No 1-in-chamber conditions exist for altfire AFAIK but just for consistency
+            ammo1mag = ("+" .. ammo2 - max2mag .. "/" .. math.Clamp(infmag3, 0, 9999))
+        end
+    end
+
+
     ARC9InfClip = false
     ARC9InfAmmo = false
     
@@ -541,8 +582,8 @@ local function funnihud()
 			hidealpha = 0
 		end
 
-        local magrate = ammo1 / weapon:GetMaxClip1()
-        local magrate2 = ammo2 / weapon:GetMaxClip2()
+        local magrate = math.Clamp(ammo1 / weapon:GetMaxClip1(), 0, 1)
+        local magrate2 = math.Clamp(ammo2 / weapon:GetMaxClip2(), 0, 1)
         local lowamount = weapon:GetMaxClip1() / 3
 
         surface.SetDrawColor(corner_color_c)
@@ -904,7 +945,7 @@ local function funnihud()
         local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
         local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
 
-        local ubglkey = "NONE"
+        local ubglkey = "HELP" -- FALLBACK!!!
         if ARC9Installed and a9 and not IsInputBound("+arc9_ubgl") then
             ubglkey = "[" .. usekey .."]+" .. "[" .. attack2 .. "]"
         elseif ARC9Installed and a9 and IsInputBound("+arc9_ubgl") then
@@ -915,7 +956,11 @@ local function funnihud()
             ubglkey = "[" .. usekey .."]+" .. "[" .. reloadkey .. "]"
         end
 
-        if HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
+        if ubglkey == "FLBK" then
+            surface.SetTextColor(255,0,0,othertext.a)
+            surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(ubglkey)
+        elseif HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
             surface.SetTextColor(255,255,255,othertext.a)
             surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
             surface.DrawText(ubglkey)
@@ -1066,6 +1111,29 @@ local function funnihud()
             surface.SetTextColor(armor_color)
             surface.DrawText(ply:Armor())
         end
+    end
+
+    if PerfDisplay:GetBool() then
+        local text1 = nil
+        if GetConVar("fps_max"):GetInt() ~= 0 then
+            text1 = framerate .. "fps/" .. GetConVar("fps_max"):GetInt() .. "fps max (~" .. lastframetime .. "ms, " .. scrw .. "x" .. scrh .. ")" 
+        else
+            text1 = framerate .. "fps (~" .. lastframetime .. "ms, " .. scrw .. "x" .. scrh .. ")" 
+        end
+        local text2 = nil
+        surface.SetFont("DebugTextScale")
+        local txw, txh = surface.GetTextSize(text1)
+        surface.SetTextPos(scrw - 8 * scale - txw, 0 + 10 * scale)
+        surface.SetTextColor(128,128,128,200)
+        surface.DrawText(text1)
+        if game.SinglePlayer then
+            text2 = ply:Ping() .. "ms to server on Singleplayer"
+        else
+            text2 = ply:Ping() .. "ms to server on " .. game.GetIPAddress
+        end
+        local tx2w, tx2h = surface.GetTextSize(text2)
+        surface.SetTextPos(scrw - 8 * scale - tx2w, 0 + 10 * scale + txh * 1.25)
+        surface.DrawText(text2)
     end
 end
 
