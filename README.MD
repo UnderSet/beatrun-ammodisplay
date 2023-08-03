@@ -3,6 +3,8 @@ My attempt at making an ammo display that works well with Beatrun. Options can b
 
 **No, Spawnmenu options *won't* be added. Do not ask for it.**
 
+*ArcCW is ----ing horrible to work with. Don't make SWEPs using it. (Maybe I'm just too ambitious, but still.)*
+
 ## Features
 - Fully clientside, works with any server that has `sv_allowcslua` allowed
 - Primary ammo display, with viewpunch offset and firemode display
