@@ -1,7 +1,10 @@
---This is my attempt at making a one-file ammo counter HUD that fits Beatrun well.
---I wanna kill myself for making this thing.
+-- This is my attempt at making a one-file ammo counter HUD that fits Beatrun well.
+-- I wanna kill myself for making this thing.
 
---Uses some ARC9 code. See line 167 for details.
+-- Uses some ARC9 code. See line 167 for details.
+
+-- Trust me when I say ArcCW caused me like 9 consecutive migraines from working with it. 
+-- It's a massive pain in the arse to work with. Please don't make a SWEP using it.
 local hidden = CreateClientConVar("PKAmmoDisp_Hide", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving (why the frick would you enable this?)", 0, 1)
@@ -240,7 +243,7 @@ local function funnihud()
 
     scale = ScrH() / 1080
 
-    local ActivePrimaryFire = true -- Self-explanatory.
+    local ActivePrimaryFire = nil -- Self-explanatory.
 
     if ARC9Installed then function GetFiremodeName()
         if self:GetUBGL() then
@@ -379,12 +382,13 @@ local function funnihud()
 
     local weapon = ply:GetActiveWeapon()
     local ammo1, ammo1mag, ammo2, ammo2mag, hasSecondaryAmmoType = -1, -1, -1, -1, false;
+
     if (IsValid(weapon)) then
         infmag2 = (math.Clamp(ply:GetAmmoCount(weapon:GetPrimaryAmmoType()), 0, 9999))
         infmag3 = (math.Clamp(ply:GetAmmoCount(weapon:GetSecondaryAmmoType()), 0, 9999))
-        ammo1 = math.Clamp(weapon:Clip1(), -1, 9999)
+        mag1 = math.Clamp(weapon:Clip1(), -1, 9999)
         ammo1mag = ("/" .. math.Clamp(infmag2, 0, 9999))
-        ammo2 = math.Clamp(weapon:Clip2(), -1, 9999)
+        mag2 = math.Clamp(weapon:Clip2(), -1, 9999)
         ammo2mag = ("/" .. math.Clamp(infmag3, 0, 9999))
         hasSecondaryAmmoType = false
         ammo1type = weapon:GetPrimaryAmmoType()
@@ -426,12 +430,18 @@ local function funnihud()
         UsesAltMag = 1
     end
 
-    if ammo1 > max1mag then
-        ammo1mag = ("+" .. ammo1 - max1mag .. "/" .. math.Clamp(infmag2, 0, 9999))
+    if mag1 > max1mag then
+        ammo1mag = ("+" .. mag1 - max1mag .. "/" .. math.Clamp(infmag2, 0, 9999))
+        ammo1 = mag1 - (mag1 - max1mag) -- Goddamnyou ARC9 for making ammo1 act weird
+    else
+        ammo1 = mag1
     end
-    if HasAltFire and UsesAltMag == 1 then
+    if HasAltFire and UsesAltMag == 1 and ply:IsValid() and ply:Alive() then
         if weapon:Clip2() > weapon:GetMaxClip2() then -- No 1-in-chamber conditions exist for altfire AFAIK but just for consistency
-            ammo1mag = ("+" .. ammo2 - max2mag .. "/" .. math.Clamp(infmag3, 0, 9999))
+            ammo2mag = ("+" .. mag2 - max2mag .. "/" .. math.Clamp(infmag3, 0, 9999))
+            ammo2 = mag2 - (mag2 - max2mag)
+        else
+            ammo2 = mag2
         end
     end
 
@@ -527,7 +537,6 @@ local function funnihud()
             local arccw_mode = weapon:GetCurrentFiremode()
     
             pkad_firemode_text = weapon:GetFiremodeName()
-            -- there was a reason I kept it to 4 letters you assholes
     
             pkad_firemode_text = string.upper(pkad_firemode_text)  
         elseif weapon:IsScripted() then
@@ -572,9 +581,18 @@ local function funnihud()
         if ArcCWInstalled and isweparccw and string.match(pkad_firemode_text, "UB") and not pkad_firemode_text == "DOUBLE-ACTION" then -- Extra precautions
             pkad_firemode_text = "SWITCH"
             ActivePrimaryFire = false
-        elseif ARC9Installed and a9 and weapon:GetUBGL() then
-            ActivePrimaryFire = false
         end
+        if ARC9Installed and a9 and weapon:GetUBGL() then
+            ActivePrimaryFire = false
+        elseif not isweparccw then
+            ActivePrimaryFire = true
+        end
+
+        --if ActivePrimaryFire then
+        --    print("1")
+        --else
+        --    print("0")
+        --end
 
 		if dynamic:GetBool() then
 			hidealpha = math.Approach(hidealpha, 150 * ply:GetVelocity():Length() / 250, 100 * RealFrameTime())
@@ -583,6 +601,7 @@ local function funnihud()
 		end
 
         local magrate = math.Clamp(ammo1 / weapon:GetMaxClip1(), 0, 1)
+        local magflowrate = math.Clamp((mag1 - max1mag) / weapon:GetMaxClip1(), 0, 1)
         local magrate2 = math.Clamp(ammo2 / weapon:GetMaxClip2(), 0, 1)
         local lowamount = weapon:GetMaxClip1() / 3
 
@@ -657,6 +676,10 @@ local function funnihud()
                 surface.SetDrawColor(ammobarcolor)
                 surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magrate, scale * 5)
                 surface.SetDrawColor(corner_color_c)
+                if mag1 > max1mag then
+                    surface.SetDrawColor(255,255,255,ammobarcolor.a)
+                    surface.DrawRect(scrw * 0.907 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * magflowrate, scale * 7)
+                end
             end
 
             if HasAltFire and UsesAltMag == 0 then
@@ -670,7 +693,7 @@ local function funnihud()
                 local mag2w, mag2h = surface.GetTextSize(infmag3)
                 surface.SetTextPos(scrw * 0.86 - mag2w + vp.z, scrh * 0.9 + vp.x)
                 if infmag3 == 0 then
-                    if ActivePrimaryFire then
+                    if ActivePrimaryFire == true then
                         surface.SetTextColor(153,0,0,text_color.a)
                     else
                         surface.SetTextColor(255,0,0,text_color.a)
@@ -774,7 +797,7 @@ local function funnihud()
             local magw, magh = surface.GetTextSize(infmag2)
             surface.SetTextPos(rscrbor - magw + vp.z, scrh * 0.9 + vp.x)
             if infmag2 == 0 then
-                if ActivePrimaryFire then
+                if ActivePrimaryFire == true then
                     surface.SetTextColor(153,0,0,text_color.a)
                 else
                     surface.SetTextColor(255,0,0,text_color.a)
@@ -877,7 +900,7 @@ local function funnihud()
         --    surface.DrawRect(256, 256, 256, 256)
         --end
 
-        if ArcCWInstalled and isweparccw and ProcessFiremode:GetBool() then
+        if ArcCWInstalled and isweparccw and ProcessFiremode:GetBool() and pkad_firemode_text ~= "SWITCH" and pkad_firemode_text ~= "UNDERBARREL" then
             for i=1,#ArcPossibleFiremodes do
                 if (string.match(pkad_firemode_text, ArcPossibleFiremodes[i])) then
                     pkad_firemode_text = ArcFiremodeDisplay[i]
@@ -930,7 +953,7 @@ local function funnihud()
             surface.SetTextColor(153,153,153,othertext.a)
             surface.SetFont("funnitexttiny")
         end
-        if isweparccw and ActivePrimaryFire == false then
+        if isweparccw and pkad_processed_firemode_text == "UNDERBARREL" then
             local firemodethicc, firemodetall = surface.GetTextSize("SWITCH")
             surface.SetTextPos(rscrbor - firemodethicc + vp.z, scrh * 0.95 + vp.x)
             surface.SetTextColor(text_color)
@@ -944,8 +967,16 @@ local function funnihud()
         local usekey = string.upper(string.Replace(input.LookupBinding("+use", 1), "MOUSE", "M"))
         local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
         local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
+        local zoomkey = nil
+        
+        if IsInputBound("+zoom") then 
+            zoomkey = string.upper(string.Replace(input.LookupBinding("+zoom", 1), "MOUSE", "M")) 
+        else 
+            zoomkey = "NONE" 
+        end
 
         local ubglkey = "HELP" -- FALLBACK!!!
+        local firemodekey = "NONE"
         if ARC9Installed and a9 and not IsInputBound("+arc9_ubgl") then
             ubglkey = "[" .. usekey .."]+" .. "[" .. attack2 .. "]"
         elseif ARC9Installed and a9 and IsInputBound("+arc9_ubgl") then
@@ -956,18 +987,35 @@ local function funnihud()
             ubglkey = "[" .. usekey .."]+" .. "[" .. reloadkey .. "]"
         end
 
-        if ubglkey == "FLBK" then
-            surface.SetTextColor(255,0,0,othertext.a)
-            surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
-            surface.DrawText(ubglkey)
-        elseif HasAltFire and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
+        if ARC9Installed and a9 then
+            firemodekey = "[" .. zoomkey .. "]"
+        elseif ArcCWInstalled and isweparccw and IsInputBound("arccw_firemode") then
+            firemodekey = "[" .. string.upper(input.LookupBinding("arccw_firemode", 1)) .. "]"
+        elseif ArcCWInstalled and isweparccw then
+            firemodekey = "[" .. zoomkey .. "]"
+        end
+
+        print(ubglkey)
+
+        if HasAltFire and isweparccw and pkad_firemode_text == "UNDERBARREL" then
             surface.SetTextColor(255,255,255,othertext.a)
             surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
             surface.DrawText(ubglkey)
-        elseif HasAltFire and ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
+        elseif HasAltFire and not isweparccw and ActivePrimaryFire == false and not automatics[weapon:GetClass()] then
+            surface.SetTextColor(255,255,255,othertext.a)
+            surface.SetTextPos(scrw * 0.887 + vp.z, scrh * 0.95 + vp.x)
+            surface.DrawText(ubglkey)
+        elseif HasAltFire and not isweparccw and ActivePrimaryFire == true and not automatics[weapon:GetClass()] then
             surface.SetTextColor(255,255,255,othertext.a)
             surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
             surface.DrawText(ubglkey)
+            surface.SetTextPos(scrw * 0.888 + vp.z, scrh * 0.95 + vp.x)
+            surface.SetTextColor(172,172,172,othertext.a)
+            surface.DrawText(firemodekey)
+        else
+            surface.SetTextPos(scrw * 0.888 + vp.z, scrh * 0.95 + vp.x)
+            surface.SetTextColor(172,172,172,othertext.a)
+            surface.DrawText(firemodekey)
         end
         
         if HasAltFire then
@@ -981,6 +1029,10 @@ local function funnihud()
                 surface.SetTextColor(text_color)
                 altfiremode = "SWITCH"
                 altmodew, altmodeh = surface.GetTextSize(altfiremode)
+            elseif isweparccw and pkad_firemode_text ~= "UNDERBARREL" and not automatics[weapon:GetClass()] then
+                surface.SetTextColor(text_color)
+                altfiremode = "SWITCH"
+                altmodew, altmodeh = surface.GetTextSize(altfiremode)
             else
                 surface.SetTextColor(153,153,153,othertext.a)
                 altfiremode = "UNDERBARREL"
@@ -991,9 +1043,7 @@ local function funnihud()
         end
     elseif ply:IsValid() and ply:Alive() and melee then
         -- Spaghetti for EasyChat to STOP SPITTING ERRORS MY WAY
-        ActivePrimaryFire = false 
-        pkad_processed_firemode_text = "SWITCH"
-        if ActivePrimaryFire == false or pkad_processed_firemode_text == "SWITCH" then
+        if ply:Alive() or ply:IsValid() then
             surface.SetTextColor(255,255,255,othertext.a)
             surface.SetFont("funnitexttiny")
         else
