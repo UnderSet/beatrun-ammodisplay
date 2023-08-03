@@ -1,5 +1,5 @@
 # beatrun-ammocounter
-My attempt at making an ammo display that works well with Beatrun. *Currently in rewrite and is not usable.*~~<br>If it doesn't show up, run the following command in the Developer Console: `lua_openscript_cl autorun\ammocounter.lua`~~
+My attempt at making an ammo display that works well with Beatrun. *Currently in rewrite, is kind of usable for now.*<br>If it doesn't show up, run the following command in the Developer Console: `lua_openscript_cl autorun\ammocounter.lua`
 
 **No, Spawnmenu options *won't* be added, even in the rewrite. Do not ask for it.**
 
