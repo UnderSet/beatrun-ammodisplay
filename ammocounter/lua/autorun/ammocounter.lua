@@ -9,6 +9,11 @@ local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide
 local debug = CreateClientConVar("PKAmmoDisp_DebugStuff", "0", true, false, "Some stupid debug stuff I pulled over", 0, 1)
 local PerfDisplay = CreateClientConVar("PKAmmoDisp_PerfDisplay", "1", true, false, "Displays some miscellaneous stuff on your monitor/game window's top right.")
 local NoBlur = CreateClientConVar("PKAmmoDisp_NoBlur", "0", true, false, "Disables blur effects. Only works on DX9+ (Windows) and Linux, as blur doesn't work with DX8 and below. Gives like 2fps or something. Does not affect Beatrun.")
+local playername = ""
+
+steamworks.RequestPlayerInfo( LocalPlayer():SteamID64(), function( steamName )
+	playername = steamName
+end )
 
 local scale = ScrH() / 1080
 local framerate = 0
@@ -191,6 +196,10 @@ end )
 local hidealpha = 0
 
 local function PKAD_Draw()
+    local pctime = os.time()
+    local humantime = os.date("%Y/%m/%d %H:%M:%S",pctime)
+    print(humantime)
+
 	local ply = LocalPlayer()
 	local scrw = ScrW()
 	local scrh = ScrH()
@@ -592,6 +601,29 @@ local function PKAD_Draw()
 	end
 end
 
+local DispSegments = { -- Element alighment helpers, used while debugging
+    "0",
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4",
+    "0.5",
+    "0.6",
+    "0.7",
+    "0.8",
+    "0.9",
+    "0.05",
+    "0.15",
+    "0.25",
+    "0.35",
+    "0.45",
+    "0.55",
+    "0.65",
+    "0.75",
+    "0.85",
+    "0.95",
+}
+
 hook.Add("HUDPaint", "PKAD_Draw", PKAD_Draw) -- bruh its not PKAD_Draw()
 
 hook.Add( "HUDPaint", "drawsegment", function( name )
@@ -624,6 +656,16 @@ hook.Add( "HUDPaint", "drawsegment", function( name )
             surface.DrawRect(1, ScrH() * (DispSegments[i] + 0.025), ScrW(), 1) 
         end
         surface.SetTextColor(255,255,255,255)
+        surface.SetFont("PKAD_SmallText")
+        local weapondata = PrimaryAmmo .. " | " .. SecondaryAmmo .. " | " .. PrimaryMag .. " | " .. SecondaryMag .. " | " .. OverCapacity .. " | " .. OverAltCapacity .. " | " .. PrimaryReserve .. " | " .. SecondaryReserve
+
+        local DebugWepW, DebugWepH = surface.GetTextSize(weapondata)
+        print(DebugWepW .. " | " .. DebugWepH)
+        surface.SetTextPos(ScrW() * 0.5 - (DebugWepW * 0.5), ScrH() * 0.55)
         surface.DrawText(PrimaryAmmo .. " | " .. SecondaryAmmo .. " | " .. PrimaryMag .. " | " .. SecondaryMag .. " | " .. OverCapacity .. " | " .. OverAltCapacity .. " | " .. PrimaryReserve .. " | " .. SecondaryReserve)
+
+        local HealthDebugW, HealthDebugH = surface.GetTextSize(LocalPlayer():Health() .. "/" .. LocalPlayer():GetMaxHealth() .. " HP  |  " .. LocalPlayer():Armor() .. "/" .. LocalPlayer():GetMaxArmor() .. "AP")
+        surface.SetTextPos(ScrW() * 0.5 - HealthDebugW * 0.5, ScrH() * 0.55 + DebugWepH)
+        surface.DrawText(LocalPlayer():Health() .. "/" .. LocalPlayer():GetMaxHealth() .. " HP  |  " .. LocalPlayer():Armor() .. "/" .. LocalPlayer():GetMaxArmor() .. "AP")
     end
 end )
