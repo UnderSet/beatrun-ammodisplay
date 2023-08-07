@@ -10,10 +10,10 @@ local debug = CreateClientConVar("PKAmmoDisp_DebugStuff", "0", true, false, "Som
 local PerfDisplay = CreateClientConVar("PKAmmoDisp_PerfDisplay", "1", true, false, "Displays some miscellaneous stuff on your monitor/game window's top right.")
 local NoBlur = CreateClientConVar("PKAmmoDisp_NoBlur", "0", true, false, "Disables blur effects. Only works on DX9+ (Windows) and Linux, as blur doesn't work with DX8 and below. Gives like 2fps or something. Does not affect Beatrun.")
 local playername = ""
+CreateClientConVar("PKAmmoDisp_CornerColor", "65 124 174 124", true, false, "Ammo counter corner color.")
+CreateClientConVar("PKAmmoDisp_AmmobarColor", "85 144 194 200", true, false, "Ammo bar color.")
+CreateClientConVar("PKAmmoDisp_TextColor", "255 255 255 255", true, false, "Ammo counter text color.")
 
-steamworks.RequestPlayerInfo( LocalPlayer():SteamID64(), function( steamName )
-	playername = steamName
-end )
 
 local scale = ScrH() / 1080
 local framerate = 0
@@ -21,12 +21,12 @@ local frametime = 0
 
 function GetCurrentFiremodeTable()
 	local fm = self:GetFiremode()
-
+	
 	if fm > #self:GetValue("Firemodes") then
 		fm = 1
 		self:SetFiremode(fm)
 	end
-
+	
 	return self:GetValue("Firemodes")[fm]
 end
 
@@ -39,19 +39,19 @@ local function DrawBlurRect2(x, y, w, h, a)
 	else
 		local X = 0
 		local Y = 0
-
+		
 		surface.SetDrawColor(255, 255, 255, a)
 		surface.SetMaterial(blur)
-
+		
 		for i = 1, 2 do
 			blur:SetFloat("$blur", i / 3 * 5)
 			blur:Recompute()
-
+			
 			render.UpdateScreenEffectTexture()
 			render.SetScissorRect(x, y, x + w, y + h, true)
-
+			
 			surface.DrawTexturedRect(X * -1, Y * -1, ScrW(), ScrH())
-
+			
 			render.SetScissorRect(0, 0, 0, 0, false)
 		end
 	end
@@ -61,7 +61,7 @@ local hidealpha = 0
 
 function DoesConVarExist(luavar)
 	local var = GetConVar(luavar)
-
+	
 	if !var then
 		return false
 	else
@@ -94,7 +94,7 @@ end
 
 function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflicts.
 	local key = input.LookupBinding(bind)
-
+	
 	if !key then
 		return falsedddddddddd
 	else
@@ -131,7 +131,7 @@ function PKAmmoDisp_InitFonts()
 		weight = 500,
 		size = 21 * scale
 	})
-
+	
 	surface.CreateFont("PKAD_SmallText", {
 		shadow = true,
 		blursize = 0,
@@ -167,7 +167,7 @@ function PKAmmoDisp_InitFonts()
 		weight = 250,
 		size = 36 * scale
 	})
-
+	
 	surface.CreateFont("DebugTextScale", {
 		shadow = false,
 		blursize = 0,
@@ -196,21 +196,24 @@ end )
 local hidealpha = 0
 
 local function PKAD_Draw()
+	steamworks.RequestPlayerInfo( LocalPlayer():SteamID64(), function( steamName )
+		playername = steamName
+	end )
     local pctime = os.time()
     local humantime = os.date("%Y/%m/%d %H:%M:%S",pctime)
     print(humantime)
-
+	
 	local ply = LocalPlayer()
 	local scrw = ScrW()
 	local scrh = ScrH()
-
+	
 	if dynamic:GetBool() then
 		hidealpha = math.Approach(hidealpha, 150 * ply:GetVelocity():Length() / 250, 100 * RealFrameTime())
 	end
-
+	
 	local lastframetime = (math.floor(math.Round(FrameTime(), 4) * 1000))
 	framerate = math.Round(math.Approach(framerate, math.ceil(1 / FrameTime()), FrameTime() * 10000))
-
+	
 	scale = ScrH() / 1080
 
 	local Weapon = ply:GetActiveWeapon()
@@ -397,9 +400,6 @@ local function PKAD_Draw()
 		end
 	end
 
-	CreateClientConVar("PKAmmoDisp_CornerColor", "65 124 174 124", true, false, "Ammo counter corner color.")
-	CreateClientConVar("PKAmmoDisp_AmmobarColor", "85 144 194 200", true, false, "Ammo bar color.")
-	CreateClientConVar("PKAmmoDisp_TextColor", "255 255 255 255", true, false, "Ammo counter text color.")
 	--local ammobarcolor = nil
 
 	local corner_color_c = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_CornerColor"))
@@ -558,12 +558,12 @@ local function PKAD_Draw()
             surface.SetFont("PKAD_BigText")
             local Reserve1W, Reserve1H = surface.GetTextSize("/" .. PrimaryReserve)
             surface.SetTextColor(ReserveColor)
-            surface.SetTextPos((scrw * 0.986) - Reserve1W, scrh * 0.91)
+            surface.SetTextPos((scrw * 0.986) - Reserve1W + vp.z, scrh * 0.91 + vp.x)
             surface.DrawText("/" .. PrimaryReserve)
 
             surface.SetFont("PKAD_HugeText")
             local MagazineW, MagazineH = surface.GetTextSize(PrimaryAmmo)
-            surface.SetTextPos(scrw * 0.986 - Reserve1W - MagazineW, scrh * 0.9)
+            surface.SetTextPos(scrw * 0.986 - Reserve1W - MagazineW + vp.z, scrh * 0.9 + vp.x)
             surface.SetTextColor(MagazineColor)
             surface.DrawText(PrimaryAmmo)
 
@@ -624,7 +624,11 @@ local DispSegments = { -- Element alighment helpers, used while debugging
     "0.95",
 }
 
-hook.Add("HUDPaint", "PKAD_Draw", PKAD_Draw) -- bruh its not PKAD_Draw()
+hook.Add("HUDPaint", "PKAD_Draw", function()
+	if hidden:GetBool() then return end
+	PKAD_Draw()
+end
+) -- bruh its not PKAD_Draw()
 
 hook.Add( "HUDPaint", "drawsegment", function( name )
     local scale = ScrH() / 1080
