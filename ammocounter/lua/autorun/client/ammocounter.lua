@@ -365,7 +365,7 @@ local function PKAD_Draw()
 
 		pkad_firemode_text = string.upper(pkad_firemode_text)  
 	elseif ply:Alive() then
-        if Weapon:IsScripted() then
+        if Weapon:IsScripted() then -- bruh github thinks its inline with ply:Alive() right above
 		    if !Weapon.Primary.Automatic then
 		    	pkad_firemode_text = "SEMI AUTO"
 		    end
@@ -547,6 +547,7 @@ local function PKAD_Draw()
 		surface.DrawText(text2)
 	end
 
+	-- Kind of usable but needs work, mostly ok tho
 	if IsValid(Weapon) and ply:IsValid() and ply:Alive() and Weapon:GetPrimaryAmmoType() != -1 then
 		surface.SetDrawColor(corner_color_c)
 		surface.DrawRect(scrw * 0.886 + scale * 200 + vp.z, scrh * 0.895 + vp.x, 40 * scale, scale * 85)
