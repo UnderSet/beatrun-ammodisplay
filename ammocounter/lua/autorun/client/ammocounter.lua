@@ -400,7 +400,7 @@ local function PKAD_Draw()
 		isweparccw = Weapon.ArcCW
 	end
 
-	if string.match(WeaponClass, "mg_") and !isarc9 and !isweparccw then -- I have ZERO other fucking clue as to how to detect MW Base as it's barely documented.
+	if string.match(tostring(WeaponClass), "mg_") and !isarc9 and !isweparccw then -- I have ZERO other fucking clue as to how to detect MW Base as it's barely documented.
 		ismgbase = true
 	end
 
@@ -427,12 +427,7 @@ local function PKAD_Draw()
 		InstantAltfire = true
 	elseif !isarc9 and !isweparccw and PrimaryMag == -1 then
 		BottomlessMag = true
-		-- We CANNOT deduce whether we're using infinite ammo for non-ARC9/ArcCW weapons right now.
-	end
-	
-	if BottomlessMag then
-		surface.SetDrawColor(255,255,255,255)
-		surface.DrawRect(500,500,12,12)
+		-- To-do: CW2 and TFA. MW Base doesn't have infinite ammo.
 	end
 	
 	pkad_firemode_text = "FULL AUTO"
@@ -642,6 +637,10 @@ local function PKAD_Draw()
 	local armorsegment1 = math.Clamp(ply:Armor() - 25, 0, 25)
 	local armorsegment2 = math.Clamp(ply:Armor() - 50, 0, 25)
 	local armorsegment3 = math.Clamp(ply:Armor() - 75, 0, 25)
+	local armorsegment4 = math.Clamp(ply:Armor() - 100, 0, 25)
+	local armorsegment5 = math.Clamp(ply:Armor() - 125, 0, 25)
+	local armorsegment6 = math.Clamp(ply:Armor() - 150, 0, 25)
+	local armorsegment7 = math.Clamp(ply:Armor() - 175, 0, 25)
 
 	local vp = ply:GetViewPunchAngles()
 	if !sway:GetBool() then
@@ -678,6 +677,12 @@ local function PKAD_Draw()
 		surface.DrawRect(62 * scale + vp.z, scrh * (BlurHeight + 0.0045) + vp.x, scale * (1.40 * armorsegment1), scale * 14)
 		surface.DrawRect(100 * scale + vp.z, scrh * (BlurHeight + 0.0045) + vp.x, scale * (1.40 * armorsegment2), scale * 14)
 		surface.DrawRect(138 * scale + vp.z, scrh * (BlurHeight + 0.0045) + vp.x, scale * (1.40 * armorsegment3), scale * 14)
+
+		surface.SetDrawColor(200,200,200,255)
+		surface.DrawRect(62 * scale + vp.z, scrh * (BlurHeight + 0.004) + vp.x, scale * (1.40 * armorsegment5), scale * 9)
+		surface.DrawRect(24 * scale + vp.z, scrh * (BlurHeight + 0.004) + vp.x, scale * (1.40 * armorsegment4), scale * 9)
+		surface.DrawRect(100 * scale + vp.z, scrh * (BlurHeight + 0.004) + vp.x, scale * (1.40 * armorsegment6), scale * 9)
+		surface.DrawRect(138 * scale + vp.z, scrh * (BlurHeight + 0.004) + vp.x, scale * (1.40 * armorsegment7), scale * 9)
 		
 		armor_color = nil
 		if ply:Armor() > 15 then
