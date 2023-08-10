@@ -14,7 +14,7 @@ My attempt at making an ammo display that works well with Beatrun. *Currently in
 - Secondary/alt-fire ammo display, with mag-style altfire support *(why does no other HUD support this properly?)*
 - Support for mag-less weapons
 - Armor display because Beatrun doesn't have one
-~~- Optional speedometer, works outside of Beatrun too~~
+- ~~Optional speedometer, works outside of Beatrun too~~
 
 ## To be done
 Just check the Issues tab, will ya?
