@@ -8,15 +8,17 @@ local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HU
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving (why the frick would you enable this?)", 0, 1)
 local debug = CreateClientConVar("PKAmmoDisp_DebugStuff", "0", true, false, "Some stupid debug stuff I pulled over", 0, 1)
 local PerfDisplay = CreateClientConVar("PKAmmoDisp_PerfDisplay", "1", true, false, "Displays some miscellaneous stuff on your monitor/game window's top right.")
-local NoBlur = CreateClientConVar("PKAmmoDisp_NoBlur", "0", true, false, "Disables blur effects. Only works on DX9+ (Windows) and Linux, as blur doesn't work with DX8 and below. Gives like 2fps or something. Does not affect Beatrun.")
+local NoBlur = CreateClientConVar("PKAmmoDisp_NoBlur", "0", true, false, "Disables blur effects. Blur only works on DX9+. Does not affect Beatrun or the Player ID on the top-right.")
 local playername = ""
 CreateClientConVar("PKAmmoDisp_CornerColor", "65 124 174 124", true, false, "Ammo counter corner color.")
 CreateClientConVar("PKAmmoDisp_AmmobarColor", "85 144 194 200", true, false, "Ammo bar color.")
 CreateClientConVar("PKAmmoDisp_TextColor", "255 255 255 255", true, false, "Ammo counter text color.")
+CreateClientConVar("PKAmmoDisp_BlurTintColor", "0 0 0 0", true, false, "Blur tint color. Helps with visibility. Only works with blur enabled./n Alpha value is locked, sorry!")
 
 local scale = ScrH() / 1080
 local framerate = 0
 local frametime = 0
+local hidealpha = 0
 
 function GetCurrentFiremodeTable()
 	local fm = self:GetFiremode()
@@ -53,6 +55,12 @@ local function DrawBlurRect2(x, y, w, h, a)
 			
 			render.SetScissorRect(0, 0, 0, 0, false)
 		end
+
+		BlurTintColor = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_BlurTintColor"))
+		BlurTintColor.a = dynamic:GetBool() and math.max(50 - hidealpha, 0) or BlurTintColor.a
+		surface.SetDrawColor(BlurTintColor)
+		surface.DrawRect(x,y,w,h)
+		--print(tostring(BlurTintColor))
 	end
 end
 
@@ -112,8 +120,6 @@ local function DrawDarkBlur(x, y, w, h, a)
 	end
 end
 
-local hidealpha = 0
-
 function DoesConVarExist(luavar)
 	local var = GetConVar(luavar)
 	
@@ -135,16 +141,20 @@ local TFAInstalled = false
 
 -- Does the user have the supported Weapon bases installed?
 if DoesConVarExist("arc9_precache_sounds_onfirsttake") then
-	print("ARC9 is installed!")			 -- ARC9
+	print("[PKAD] ARC9 is installed and enabled!")			 -- ARC9
 	ARC9Installed = true
 end
 if DoesConVarExist("arccw_automaticreload") then
-	print("ArcCW is installed!")			-- ArcCW (aka Arctic's Customizable Weaponry)
+	print("[PKAD] ArcCW is installed and enabled!")			-- ArcCW (aka Arctic's Customizable Weaponry)
 	ArcCWInstalled = true
 end
 if DoesConVarExist("cl_tfa_hud_enabled") then
-	print("TFA Base is installed!")		 -- TFA Base
+	print("[PKAD] TFA Base is installed and enabled!")		 -- TFA Base
 	TFAInstalled = true
+end
+if DoesConVarExist("mgbase_hud_firemode") then
+	print("[PKAD] Modern Warfare Base is installed and enabled!")
+	print("[PKAD] (!) WARNING: Support for this base is unstable. Use other weapon bases if possible!")
 end
 
 function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflicts.
@@ -168,6 +178,18 @@ local CPPAltfireWeps = {
 	["Weapon_ar2"] = true,
 	["Weapon_mp5_hl1"] = true
 }  
+
+local MWBaseFiremodes = {
+    ["AUTOMATIC"] = "FULL AUTO", 
+    ["SEMI AUTO"] = "SEMI AUTO",
+    ["3RND BURST"] = "3-BURST"
+}
+
+local TFAFiremodes = {
+    ["Full-Auto"] = "FULL AUTO", 
+    ["Semi-Auto"] = "SEMI AUTO",
+    ["3 Round Burst"] = "3-BURST"
+}
 
 hook.Add("HUDShouldDraw", "hidefunnyshit", function(name)
 	if hidden:GetBool() then return end
@@ -254,6 +276,8 @@ hook.Add( "OnScreenSizeChanged", "UpdateFonts", function() -- Also magically upd
 	PKAmmoDisp_InitFonts()
 end )
 
+concommand.Add("PKAmmoDisp_ResetFonts", function(ply, cmd, args, argStr) PKAmmoDisp_InitFonts() end, nil, "Reinitialize ALL fonts used by the addon.")
+
 local hidealpha = 0
 
 local function PKAD_Draw()
@@ -303,14 +327,14 @@ local function PKAD_Draw()
 	local PrimaryAmmo, SecondaryAmmo, PrimaryMag, SecondaryMag, PrimaryReserve, SecondaryReserve, HasAltFire, BottomlessMag, InstantAltfire = -1, -1, -1, -1, -1, -1, false, false, false
 
 	local VanillaAutomatics = {
-		["Weapon_smg1"] = true,
-		["Weapon_ar2"] = true,
-		["Weapon_mp5_hl1"] = true,
-		["Weapon_gauss"] = true,
-		["Weapon_egon"] = true
+		["weapon_smg1"] = true,
+		["weapon_ar2"] = true,
+		["weapon_mp5_hl1"] = true,
+		["weapon_gauss"] = true,
+		["weapon_egon"] = true
 	}  
 
-	if IsValid(Weapon) then
+	if IsValid(Weapon) and ply:Alive() then
 		WeaponClass = Weapon:GetClass()
 		PrimaryAmmo = math.Clamp(Weapon:Clip1(), 0, Weapon:GetMaxClip1())
 		SecondaryAmmo = math.Clamp(Weapon:Clip2(), 0, Weapon:GetMaxClip2())
@@ -330,13 +354,13 @@ local function PKAD_Draw()
 	local ActivePrimaryFire = true -- Self-explanatory.
 
 	if ARC9Installed then function GetFiremodeName()
-		if self:GetUBGL() then
+		if Weapon:GetUBGL() then
 			ActivePrimaryFire = false
-			return self:GetProcessedValue("UBGLFiremodeName")
+			return Weapon:GetProcessedValue("UBGLFiremodeName")
 		else
 		end
 		
-		local arc9_mode = self:GetCurrentFiremodeTable()
+		local arc9_mode = Weapon:GetCurrentFiremodeTable()
 		local pkad_firemode_text = "UNKNOWN"
 		
 		if arc9_mode.PrintName then
@@ -353,11 +377,10 @@ local function PKAD_Draw()
 			end
 		end
 		
-		if self:GetSafe() then
+		if Weapon:GetSafe() then
 			pkad_firemode_text = "SAFETY"
 		end
 		
-		print(tostring(arc9_mode.Mode))
 		return pkad_firemode_text
 	end
 	end
@@ -390,6 +413,7 @@ local function PKAD_Draw()
 	local inarc9cust = false
 	local isweparccw = false
 	local ismgbase = false -- MW Base is called mg_ in-engine, FYI to coders who stumbled here
+	local istfabase = false
 
 	if ARC9Installed then
 		isarc9 = Weapon.ARC9
@@ -398,6 +422,10 @@ local function PKAD_Draw()
 
 	if ArcCWInstalled then
 		isweparccw = Weapon.ArcCW
+	end
+
+	if TFAInstalled then
+		istfabase = Weapon.IsTFAWeapon
 	end
 
 	if string.match(tostring(WeaponClass), "mg_") and !isarc9 and !isweparccw then -- I have ZERO other fucking clue as to how to detect MW Base as it's barely documented.
@@ -422,12 +450,12 @@ local function PKAD_Draw()
 	if isarc9 and Weapon:GetProcessedValue("BottomlessClip", true) then
 		BottomlessMag = true
 		InstantAltfire = true
-	elseif (isweparccw and GetConVar("arccw_mult_bottomlessclip"):GetBool()) then
+	elseif isweparccw and GetConVar("arccw_mult_bottomlessclip"):GetBool() then
 		BottomlessMag = true
-		InstantAltfire = true
+		InstantAltfire = false
+		-- For some inexplicable reason altfire for ArcCW is NOT affected by its bottomless clip CVar.
 	elseif !isarc9 and !isweparccw and PrimaryMag == -1 then
 		BottomlessMag = true
-		-- To-do: CW2 and TFA. MW Base doesn't have infinite ammo.
 	end
 	
 	pkad_firemode_text = "FULL AUTO"
@@ -436,7 +464,7 @@ local function PKAD_Draw()
 	if isarc9 then -- Biggest blunder ever: forgor to change a9 to isarc9. bruh.
 		local arc9_mode = Weapon:GetCurrentFiremodeTable()
 		
-		pkad_firemode_text = Weapon:GetFiremodeName()
+		pkad_firemode_text = GetFiremodeName()
 		
 		-- Funny note: Some ARC9 functions are global so we can just use them directly if ARC9 is installed! Hooray!
 		if #Weapon:GetValue("Firemodes") > 1 then
@@ -454,6 +482,7 @@ local function PKAD_Draw()
 			}
 			pkad_firemode_text = arc9_mode.PrintName
 			wepmultifire = false
+			ActivePrimaryFire = false
 		end
 		
 		if Weapon:GetSafe() then
@@ -480,8 +509,22 @@ local function PKAD_Draw()
 		pkad_firemode_text = GetCWFiremodeName()
 
 		pkad_firemode_text = string.upper(pkad_firemode_text)  
+	elseif ismgbase then
+		if !Weapon:GetSafety() then
+			pkad_firemode_text = string.upper(Weapon.Firemodes[Weapon:GetFiremode()].Name) -- Do we need two complicated tables for this?
+			for k,v in pairs(MWBaseFiremodes) do
+				if k == pkad_firemode_text then
+					pkad_firemode_text = v
+				end
+			end
+		else
+			pkad_firemode_text = "SAFETY"
+		end
+	elseif istfabase then
+		pkad_firemode_text = Weapon:GetFireModeName()
+		-- It's a miracle how all of these bases don't conflict regarding their GetFiremode() or equivalent function.
 	elseif ply:Alive() then
-		if Weapon:IsScripted() then -- bruh github thinks its inline with ply:Alive() right above
+		if Weapon:IsScripted() then
 			if !Weapon.Primary.Automatic then
 				pkad_firemode_text = "SEMI AUTO"
 			end
@@ -529,9 +572,9 @@ local function PKAD_Draw()
 		pkad_alt_firemode = "TOGGLE"
 	end
 
-	local ubglkey = "????" -- FALLBACK!!!
-	local firemodekey = "????"
-	if isarc9 and not IsInputBound("+arc9_ubgl") then
+	local ubglkey = ""
+	local firemodekey = ""
+	if isarc9 and !IsInputBound("+arc9_ubgl") then
 		ubglkey = "[" .. usekey .."]+" .. "[" .. attack2 .. "]"
 	elseif isarc9 and IsInputBound("+arc9_ubgl") then
 		ubglkey = "[" .. string.upper(input.LookupBinding("+arc9_ubgl", 1)) .. "]"
@@ -559,7 +602,7 @@ local function PKAD_Draw()
 	
 	local corner_color_c = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_CornerColor"))
 	corner_color_c.a = math.Clamp(corner_color_c.a + 50, 0, 255)
-	corner_color_c.a = dynamic:GetBool() and math.max(150 - hidealpha, 50) or corner_color_c.a
+	corner_color_c.a = dynamic:GetBool() and math.max(150 - hidealpha, 25) or corner_color_c.a
 	local text_color = string.ToColor(LocalPlayer():GetInfo("PKAmmoDisp_TextColor"))
 	text_color.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or text_color.a
 	local otherammocolor = string.ToColor("153 153 153 255")
@@ -571,11 +614,11 @@ local function PKAD_Draw()
 	ammobarcolor.a = dynamic:GetBool() and math.max(255 - hidealpha, 2) or ammobarcolor.a
 
 	local armorbackground = string.ToColor("110 110 110 128")
-	armorbackground.a = dynamic:GetBool() and math.max(255 - hidealpha, 50) or armorbackground.a
+	armorbackground.a = dynamic:GetBool() and math.max(255 - hidealpha, 25) or armorbackground.a
 	local ammolowcolor = string.ToColor("255 0 0 230")
-	ammolowcolor.a = dynamic:GetBool() and math.max(230 - hidealpha, 50) or ammolowcolor.a
+	ammolowcolor.a = dynamic:GetBool() and math.max(230 - hidealpha, 25) or ammolowcolor.a
 	local ammolowcolor1 = string.ToColor("100 50 50 100")
-	ammolowcolor1.a = dynamic:GetBool() and math.max(100 - hidealpha, 50) or ammolowcolor.a
+	ammolowcolor1.a = dynamic:GetBool() and math.max(100 - hidealpha, 25) or ammolowcolor.a
 
 	local AmmoColor = nil
 	local AlternateAmmoColor = nil 
@@ -601,7 +644,7 @@ local function PKAD_Draw()
 	local AltMagBarColor = nil
 	local MagBarColor = nil
 
-	if PrimaryAmmo < PrimaryMag / 3 and not BottomlessMag then
+	if PrimaryAmmo < PrimaryMag / 3 and !BottomlessMag then
 		MagazineColor = LowAmmoColor
 		MagBarColor = ammolowcolor
 	else
@@ -617,18 +660,23 @@ local function PKAD_Draw()
 		ReserveColor = LowAmmoColor
 	end
 	
-	if SecondaryAmmo < SecondaryMag / 3 and not BottomlessMag then
+	if SecondaryAmmo < SecondaryMag / 3 and !BottomlessMag and !InstantAltfire then
 		AltfireColor = AlternateLowAmmoColor
 		AltMagBarColor = ammolowcolor
+	elseif InstantAltfire then
+		AltfireColor = AlternateAmmoColor
+		AltMagBarColor = ammobarcolor
 	else
 		AltfireColor = AlternateAmmoColor
 		AltMagBarColor = ammobarcolor
 	end
 
-	if SecondaryReserve != 0 then
+	if SecondaryReserve != 0 and !InstantAltfire then
 		AltReserveColor = AlternateAmmoColor
-	elseif InfiniteReserve then
+	elseif InfiniteReserve and !InstantAltfire then
 		AltReserveColor = AlternateAmmoColor
+	elseif InstantAltfire then
+		AltReserveColor = AmmoColor
 	else
 		AltReserveColor = AlternateLowAmmoColor
 	end
@@ -691,19 +739,19 @@ local function PKAD_Draw()
 			armor_color = string.ToColor("230 0 0 " .. corner_color_c.a)
 		end
 		if ply:Armor() < 10 then
-			surface.SetTextPos(182 * scale + vp.z, scrh * (BlurHeight + 0.002) + vp.x)
+			surface.SetTextPos(182 * scale + vp.z, scrh * (BlurHeight + 0.003) + vp.x)
 			surface.SetTextColor(120,120,120,armorbackground.a)
 			surface.DrawText("00")
 			surface.SetTextColor(armor_color)
 			surface.DrawText(ply:Armor())
 		elseif ply:Armor() < 100 then
-			surface.SetTextPos(182 * scale + vp.z, scrh * (BlurHeight + 0.002) + vp.x)
+			surface.SetTextPos(182 * scale + vp.z, scrh * (BlurHeight + 0.003) + vp.x)
 			surface.SetTextColor(120,120,120,armorbackground.a)
 			surface.DrawText("0")
 			surface.SetTextColor(armor_color)
 			surface.DrawText(ply:Armor())
 		else
-			surface.SetTextPos(182 * scale + vp.z, scrh * (BlurHeight + 0.002) + vp.x)
+			surface.SetTextPos(182 * scale + vp.z, scrh * (BlurHeight + 0.003) + vp.x)
 			surface.SetTextColor(armor_color)
 			surface.DrawText(ply:Armor())
 		end
@@ -756,20 +804,30 @@ local function PKAD_Draw()
 		surface.DrawText(text3)
 	end
 
-	surface.SetFont("PKAD_SmallText")
-	local FiremodeW, FiremodeH = surface.GetTextSize(pkad_firemode_text)
-	local AltFiremodeW, AltFiremodeH = surface.GetTextSize(pkad_alt_firemode)
+	if ply:Alive() then
+		if VanillaAutomatics[Weapon:GetClass()] then
+			ubglkey = "[" .. attack2 .. "]"
+			firemodekey = ""
+			pkad_alt_firemode = "FIRE"
+		end
+	end
+	
 	-- Kind of usable but needs work, mostly ok tho
-	if !ActivePrimaryFire then
+	if !ActivePrimaryFire and !VanillaAutomatics[Weapon:GetClass()] then
 		firemodekey = ubglkey
 		ubglkey = ""
 	end
+	
+	surface.SetFont("PKAD_SmallText")
+	local FiremodeW, FiremodeH = surface.GetTextSize(pkad_firemode_text)
+	local AltFiremodeW, AltFiremodeH = surface.GetTextSize(pkad_alt_firemode)
+	
 	if IsValid(Weapon) and ply:IsValid() and ply:Alive() and Weapon:GetPrimaryAmmoType() != -1 then
 		surface.SetDrawColor(corner_color_c)
-		surface.DrawRect(scrw * 0.886 + scale * 200 + vp.z, scrh * 0.895 + vp.x, 40 * scale, scale * 85)
-		DrawBlurRect2(scrw * 0.886 + vp.z, scrh * 0.895 + vp.x, scale * 200, scale * 85, math.max(255 - hidealpha, 2))
+		surface.DrawRect(scrw - 18.88 * scale + vp.z, scrh * 0.895 + vp.x, 40 * scale, scale * 85)
+		DrawBlurRect2(scrw - 218.88 * scale + vp.z, scrh * 0.895 + vp.x, scale * 200, scale * 85, math.max(255 - hidealpha, 2))
 		surface.SetDrawColor(corner_color_c)
-		surface.DrawOutlinedRect(scrw * 0.886 + vp.z, scrh * 0.895 + vp.x, scale * 200, scale * 85)
+		surface.DrawOutlinedRect(scrw - 218.88 * scale + vp.z, scrh * 0.895 + vp.x, scale * 200, scale * 85)
 
 		if !BottomlessMag then
 			local OverflowText = ""
@@ -781,30 +839,30 @@ local function PKAD_Draw()
 			surface.SetFont("PKAD_BigText")
 			local Reserve1W, Reserve1H = surface.GetTextSize("/" .. PrimaryReserve)
 			surface.SetTextColor(ReserveColor)
-			surface.SetTextPos((scrw * 0.986) - Reserve1W + vp.z, scrh * 0.91 + vp.x)
+			surface.SetTextPos(scrw - 26.88 * scale - Reserve1W + vp.z, scrh * 0.91 + vp.x)
 			surface.DrawText("/" .. PrimaryReserve)
 
 			surface.SetFont("PKAD_HugeText")
 			local MagazineW, MagazineH = surface.GetTextSize(PrimaryAmmo)
-			surface.SetTextPos(scrw * 0.986 - Reserve1W - OverflowSizeW - MagazineW + vp.z, scrh * 0.9 + vp.x)
+			surface.SetTextPos(scrw - 26.88 * scale - Reserve1W - OverflowSizeW - MagazineW + vp.z, scrh * 0.9 + vp.x)
 			surface.SetTextColor(MagazineColor)
 			surface.DrawText(PrimaryAmmo)
 
 			surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)
-			surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
+			surface.DrawRect(scrw - 176.64 * scale + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 2.55)
 			surface.SetDrawColor(MagBarColor)
-			surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + 1 + vp.x, 150 * scale * MagFillRatio, scale * 5)
+			surface.DrawRect(scrw - 176.64 * scale + vp.z, scrh * 0.938 + vp.x, 150 * scale * MagFillRatio, scale * 5)
 
 			surface.SetFont("PKAD_SmallText")
-			surface.SetTextPos((scrw * 0.986) - Reserve1W - OverflowSizeW + vp.z, scrh * 0.91 + vp.x)
+			surface.SetTextPos(scrw - 26.88 - Reserve1W - OverflowSizeW + vp.z, scrh * 0.91 + vp.x)
 			surface.DrawText(OverflowText)
 
 			surface.SetTextColor(AlternateAmmoColor)
 			surface.SetFont("PKAD_SmallText")
-			surface.SetTextPos(scrw * 0.986 - FiremodeW + vp.z, scrh * 0.95 + vp.x)
+			surface.SetTextPos(scrw - 26.88 * scale - FiremodeW + vp.z, scrh * 0.95 + vp.x)
 			surface.DrawText(pkad_firemode_text)
 
-            surface.SetTextPos(scrw * 0.888 + vp.z, scrh * 0.95 + vp.x)
+            surface.SetTextPos(scrw - 218.88 * scale + vp.z, scrh * 0.95 + vp.x)
             surface.SetTextColor(255,255,255,othertext.a)
             surface.DrawText(firemodekey)
 
@@ -812,83 +870,103 @@ local function PKAD_Draw()
 			--	surface.SetDrawColor(128,68,92,255)
 			--	surface.DrawRect(28,28,28,28)
 			--end
-			if HasAltFire and InstantAltfire then
-				surface.SetDrawColor(corner_color_c)
-				surface.DrawRect(scrw * 0.76025 + scale * 200 + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
-				DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - 	hidealpha, 2))
-				surface.SetDrawColor(corner_color_c)
-				surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
-
-				surface.SetFont("PKAD_HugeText")
-				local Reserve2H, Reserve2W = surface.GetTextSize((SecondaryReserve + math.Clamp(SecondaryAmmo, 0, 9999)))
-				surface.SetTextPos(scrw * 0.86 - Reserve2H + vp.z, scrh * 0.9 + vp.x)
-				surface.SetTextColor(AltReserveColor)
-				surface.DrawText((SecondaryReserve + math.Clamp(SecondaryAmmo, 0, 9999)))
-
-				surface.SetDrawColor(10, 50, 50, AltMagBarColor)					
-				surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale, scale * 5)
-
-				surface.SetTextColor(AmmoColor)
-				surface.SetFont("PKAD_SmallText")
-				surface.SetTextPos(scrw * 0.86 - AltFiremodeW + vp.z, scrh * 0.95 + vp.x)
-				surface.DrawText(pkad_alt_firemode)
-
-				surface.SetTextColor(255,255,255,othertext.a)
-				surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
-				surface.DrawText(ubglkey)
-			elseif HasAltFire and !InstantAltfire then
-				surface.SetDrawColor(corner_color_c)
-				surface.DrawRect(scrw * 0.76025 + scale * 200 + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
-				DrawBlurRect2(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - hidealpha, 2))
-				surface.SetDrawColor(corner_color_c)
-				surface.DrawOutlinedRect(scrw * 0.78168 + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
-				
-				surface.SetFont("PKAD_BigText")
-				local Reserve2H, Reserve2W = surface.GetTextSize("/" .. SecondaryReserve)
-				surface.SetTextPos(scrw * 0.86 - Reserve2H + vp.z, scrh * 0.91 + vp.x)
-				surface.SetTextColor(AltReserveColor)
-				surface.DrawText("/" .. SecondaryReserve)
-				
-				surface.SetFont("PKAD_HugeText")
-				local AltfireW, AltfireH = surface.GetTextSize(SecondaryAmmo)
-				surface.SetTextPos(scrw * 0.86 - Reserve2H - AltfireW + vp.z, scrh * 0.9 + vp.x)
-				surface.SetTextColor(AltfireColor)
-				surface.DrawText(SecondaryAmmo)
-				
-				surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)					
-				surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale, scale * 5)
-				
-				surface.SetDrawColor(AltMagBarColor)
-				surface.DrawRect(scrw * 0.81 + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale * AltFillRatio, scale * 5)
-
-				surface.SetTextColor(AmmoColor)
-				surface.SetFont("PKAD_SmallText")
-				surface.SetTextPos(scrw * 0.86 - AltFiremodeW + vp.z, scrh * 0.95 + vp.x)
-				surface.DrawText(pkad_alt_firemode)
-
-				surface.SetTextColor(255,255,255,othertext.a)
-				surface.SetTextPos(scrw * 0.784 + vp.z, scrh * 0.95 + vp.x)
-				surface.DrawText(ubglkey)
-			end
 		elseif BottomlessMag then
-			surface.SetTextColor(ReserveColor)
-			surface.SetTextPos((scrw * 0.986) - Reserve1W + vp.z, scrh * 0.91 + vp.x)
-			surface.DrawText("/" .. PrimaryReserve)
-
+			--local Reserve1W, Reserve1H = surface.GetTextSize(PrimaryReserve)
+			--surface.SetTextColor(ReserveColor)
+			--surface.SetTextPos((scrw * 0.986) - Reserve1W + vp.z, scrh * 0.91 + vp.x)
+			--surface.DrawText(PrimaryReserve)
+			
 			surface.SetFont("PKAD_HugeText")
 			local MagazineW, MagazineH = surface.GetTextSize(PrimaryReserve + math.Clamp(PrimaryAmmo, 0, 9999))
-			surface.SetTextPos(scrw * 0.986 - Reserve1W - MagazineW + vp.z, scrh * 0.9 + vp.x)
+			surface.SetTextPos(scrw * 0.986 - MagazineW + vp.z, scrh * 0.9 + vp.x)
 			surface.SetTextColor(MagazineColor)
 			surface.DrawText(PrimaryReserve + math.Clamp(PrimaryAmmo, 0, 9999))
-
+			
 			surface.SetDrawColor(MagBarColor)
 			surface.DrawRect(scrw * 0.908 + vp.z, scrh * 0.938 + vp.x, 150 * scale, scale * 5)
+			
+			surface.SetTextColor(AlternateAmmoColor)
+			surface.SetFont("PKAD_SmallText")
+			surface.SetTextPos(scrw - 26.88 * scale - FiremodeW + vp.z, scrh * 0.95 + vp.x)
+			surface.DrawText(pkad_firemode_text)
+			
+            surface.SetTextPos(scrw - 218.88 * scale + vp.z, scrh * 0.95 + vp.x)
+            surface.SetTextColor(255,255,255,othertext.a)
+            surface.DrawText(firemodekey)
+		end
+
+		if HasAltFire and InstantAltfire then
+			surface.SetDrawColor(corner_color_c)
+			surface.DrawRect(scrw - 260.512 * scale + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
+			DrawBlurRect2(scrw - 419.174 * scale + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - 	hidealpha, 2))
+			surface.SetDrawColor(corner_color_c)
+			surface.DrawOutlinedRect(scrw - 419.174 * scale + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
+		
+			surface.SetFont("PKAD_HugeText")
+			local Reserve2H, Reserve2W = surface.GetTextSize((SecondaryReserve + math.Clamp(SecondaryAmmo, 0, 9999)))
+			surface.SetTextPos(scrw - 268 * scale - Reserve2H + vp.z, scrh * 0.9 + vp.x)
+			surface.SetTextColor(AltReserveColor)
+			surface.DrawText((SecondaryReserve + math.Clamp(SecondaryAmmo, 0, 9999)))
+		
+			surface.SetDrawColor(AltMagBarColor)					
+			surface.DrawRect(scrw - 364 * scale + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale, scale * 5)
+		
+			surface.SetTextColor(AmmoColor)
+			surface.SetFont("PKAD_SmallText")
+			surface.SetTextPos(scrw - 268 * scale - AltFiremodeW + vp.z, scrh * 0.95 + vp.x)
+			surface.DrawText(pkad_alt_firemode)
+		
+			surface.SetTextColor(255,255,255,othertext.a)
+			surface.SetTextPos(scrw - 414.72 * scale + vp.z, scrh * 0.95 + vp.x)
+			surface.DrawText(ubglkey)
+		elseif HasAltFire and !InstantAltfire then
+			surface.SetDrawColor(corner_color_c)
+			surface.DrawRect(scrw - 260.512 * scale + vp.z, scrh * 0.895 + vp.x, 25 * scale, scale * 85)
+			DrawBlurRect2(scrw - 419.174 * scale + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85, math.max(255 - hidealpha, 2))
+			surface.SetDrawColor(corner_color_c)
+			surface.DrawOutlinedRect(scrw - 419.174 * scale + vp.z, scrh * 0.895 + vp.x, scale * 161, scale * 85)
+			
+			surface.SetFont("PKAD_BigText")
+			local Reserve2W, Reserve2H = surface.GetTextSize("/" .. SecondaryReserve)
+			surface.SetTextPos(scrw - 268 * scale - Reserve2W + vp.z, scrh * 0.91 + vp.x)
+			surface.SetTextColor(AltReserveColor)
+			surface.DrawText("/" .. SecondaryReserve)
+
+			local OverflowAltText = ""
+			if OverAltCapacity > 0 then
+				OverflowAltText = "+" .. OverAltCapacity
+			end
+			local OverflowAltSizeW, OverflowAltSizeY = surface.GetTextSize(OverflowAltText)
+			surface.SetFont("PKAD_SmallText")
+			surface.SetTextPos(scrw - 268 * scale - Reserve2W - OverflowAltSizeW + vp.z, scrh * 0.91 + vp.x)
+			surface.DrawText(OverflowAltText)
+			
+			surface.SetFont("PKAD_HugeText")
+			local AltfireW, AltfireH = surface.GetTextSize(SecondaryAmmo)
+			surface.SetTextPos(scrw - 268 * scale - Reserve2W - AltfireW - OverflowAltSizeW + vp.z, scrh * 0.9 + vp.x)
+			surface.SetTextColor(AltfireColor)
+			surface.DrawText(SecondaryAmmo)
+			
+			surface.SetDrawColor(10, 50, 50, ammolowcolor1.a)					
+			surface.DrawRect(scrw - 361 * scale + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale, scale * 2.55)
+			
+			surface.SetDrawColor(AltMagBarColor)
+			surface.DrawRect(scrw - 361 * scale + vp.z, scrh * 0.938 + 1 + vp.x, 100 * scale * AltFillRatio, scale * 5)
+		
+			surface.SetTextColor(AmmoColor)
+			surface.SetFont("PKAD_SmallText")
+			surface.SetTextPos(scrw - 268 * scale - AltFiremodeW + vp.z, scrh * 0.95 + vp.x)
+			surface.DrawText(pkad_alt_firemode)
+		
+			surface.SetTextColor(255,255,255,othertext.a)
+			surface.SetTextPos(scrw - 414.72 * scale + vp.z, scrh * 0.95 + vp.x)
+			surface.DrawText(ubglkey)
 		end
 	end
 end
 
 local DispSegments = { -- Element alighment helpers, used while debugging
-	"0",
+"0",
 	"0.1",
 	"0.2",
 	"0.3",
@@ -910,11 +988,7 @@ local DispSegments = { -- Element alighment helpers, used while debugging
 	"0.95",
 }
 
-hook.Add("HUDPaint", "PKAD_Draw", function()
-	if hidden:GetBool() then return end
-	PKAD_Draw()
-end
-) -- bruh its not PKAD_Draw()
+hook.Add("HUDPaint", "PKAD_Draw", PKAD_Draw) -- bruh its not PKAD_Draw()
 
 hook.Add( "HUDPaint", "drawsegment", function( name )
 	local scale = ScrH() / 1080
@@ -950,7 +1024,6 @@ hook.Add( "HUDPaint", "drawsegment", function( name )
 		local weapondata = PrimaryAmmo .. " | " .. SecondaryAmmo .. " | " .. PrimaryMag .. " | " .. SecondaryMag .. " | " .. OverCapacity .. " | " .. OverAltCapacity .. " | " .. PrimaryReserve .. " | " .. SecondaryReserve
 
 		local DebugWepW, DebugWepH = surface.GetTextSize(weapondata)
-		--print(DebugWepW .. " | " .. DebugWepH)
 		surface.SetTextPos(ScrW() * 0.5 - (DebugWepW * 0.5), ScrH() * 0.55)
 		surface.DrawText(PrimaryAmmo .. " | " .. SecondaryAmmo .. " | " .. PrimaryMag .. " | " .. SecondaryMag .. " | " .. OverCapacity .. " | " .. OverAltCapacity .. " | " .. PrimaryReserve .. " | " .. SecondaryReserve)
 
