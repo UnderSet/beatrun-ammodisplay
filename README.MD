@@ -4,9 +4,6 @@ My attempt at making an ammo display that works well with Beatrun. *Currently in
 *Now finally automatically loads by default!*
 
 > [!IMPORTANT]
-> ArcCW firemode display does not work properly with "Abbreviate Firemode Names" in its HUD options disabled, and will show "Underbarrel" with revolvers!
-
-> [!IMPORTANT]
 > Some weapons may register as a Modern Warfare Base weapon! This cannot be avoided with how the MW Base is programmed!
 
 **No, Spawnmenu options *won't* be added, even in the rewrite. Do not ask for it.**
@@ -18,7 +15,7 @@ My attempt at making an ammo display that works well with Beatrun. *Currently in
 - Secondary/alt-fire ammo display, with mag-style altfire support *(why does no other HUD support this properly?)*
 - Support for mag-less weapons
 - Armor display because Beatrun doesn't have one
-- Optional speedometer, works outside of Beatrun too
+- ~~Optional speedometer, works outside of Beatrun too~~
 
 ## To be done
 Just check the Issues tab, will ya?
