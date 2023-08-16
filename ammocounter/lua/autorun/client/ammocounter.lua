@@ -23,125 +23,125 @@ CreateClientConVar("PKAmmoDisp_DeadzoneY", "0", true, false, "Use this HUD while
 -- Note: You probably should not do that.
 local TFAModeKeys = {
 	[0] = "",
-    [1] = "0", 
-    [2] = "1",
-    [3] = "2",
+	[1] = "0", 
+	[2] = "1",
+	[3] = "2",
 	[4] = "3", 
-    [5] = "4",
-    [6] = "5",
+	[5] = "4",
+	[6] = "5",
 	[7] = "6", 
-    [8] = "7",
-    [9] = "8",
+	[8] = "7",
+	[9] = "8",
 	[10] = "9", 
-    [11] = "A",
-    [12] = "B",
+	[11] = "A",
+	[12] = "B",
 	[13] = "C", 
-    [14] = "D",
-    [15] = "E",
+	[14] = "D",
+	[15] = "E",
 	[16] = "F", 
-    [17] = "G",
-    [18] = "H",
+	[17] = "G",
+	[18] = "H",
 	[19] = "I", 
-    [20] = "J",
-    [21] = "K",
+	[20] = "J",
+	[21] = "K",
 	[22] = "L", 
-    [23] = "M",
-    [24] = "N",
+	[23] = "M",
+	[24] = "N",
 	[25] = "O", 
-    [26] = "P",
-    [27] = "Q",
+	[26] = "P",
+	[27] = "Q",
 	[28] = "R", 
-    [29] = "S",
-    [30] = "T",
+	[29] = "S",
+	[30] = "T",
 	[31] = "U", 
-    [32] = "V",
-    [33] = "W",
+	[32] = "V",
+	[33] = "W",
 	[34] = "X", 
-    [35] = "Y",
-    [36] = "Z",
+	[35] = "Y",
+	[36] = "Z",
 	[37] = "NPAD 0",
 	[38] = "NPAD 1", 
-    [39] = "NPAD 2",
-    [40] = "NPAD 3",
+	[39] = "NPAD 2",
+	[40] = "NPAD 3",
 	[41] = "NPAD 4", 
-    [42] = "NPAD 5",
-    [43] = "NPAD 6",
+	[42] = "NPAD 5",
+	[43] = "NPAD 6",
 	[44] = "NPAD 7", 
-    [45] = "NPAD 8",
-    [46] = "NPAD 9",
+	[45] = "NPAD 8",
+	[46] = "NPAD 9",
 	[47] = "NPAD /", 
-    [48] = "NPAD *",
-    [49] = "NPAD -",
+	[48] = "NPAD *",
+	[49] = "NPAD -",
 	[50] = "NPAD +", 
-    [51] = "NPAD ENTER",
-    [52] = "NPAD .",
+	[51] = "NPAD ENTER",
+	[52] = "NPAD .",
 	[53] = "(", 
-    [54] = ")",
-    [55] = ";",
+	[54] = ")",
+	[55] = ";",
 	[56] = "'", 
-    [57] = "`",
-    [58] = ",",
+	[57] = "`",
+	[58] = ",",
 	[59] = ".", 
-    [60] = "/",
-    [61] = "\\",
+	[60] = "/",
+	[61] = "\\",
 	[62] = "-", 
-    [63] = "=",
-    [64] = "ENTER",
+	[63] = "=",
+	[64] = "ENTER",
 	[65] = "SPACE", 
-    [66] = "BKSPC",
-    [67] = "TAB",
+	[66] = "BKSPC",
+	[67] = "TAB",
 	[68] = "CAPSLOCK", 
-    [69] = "NUMLOCK",
-    [70] = "ESCAPE",
+	[69] = "NUMLOCK",
+	[70] = "ESCAPE",
 	[71] = "SCRLOCK", 
-    [72] = "INS",
-    [73] = "DEL",
+	[72] = "INS",
+	[73] = "DEL",
 	[74] = "HOME", 
-    [75] = "END",
-    [76] = "PGUP",
+	[75] = "END",
+	[76] = "PGUP",
 	[77] = "PGDN", 
-    [78] = "PAUSE",
-    [79] = "LSHFT",
-    [80] = "RSHFT", 
-    [81] = "LALT",
-    [82] = "RALT",
+	[78] = "PAUSE",
+	[79] = "LSHFT",
+	[80] = "RSHFT", 
+	[81] = "LALT",
+	[82] = "RALT",
 	[83] = "LCTRL", 
 	-- 84 and 85 needs special Linux and macOS cases. Mac keyboards have Command and Linux uses "Menu", though I haven't see a dedicated
 	-- Linux Menu key on any keyboard in my life yet.
-    [84] = "RCTRL",
-    [85] = "LWIN",
+	[84] = "RCTRL",
+	[85] = "LWIN",
 	[86] = "RWIN", 
-    [87] = "APP",
-    [88] = "UARRW",
+	[87] = "APP",
+	[88] = "UARRW",
 	[89] = "LARRW", 
-    [90] = "DARRW",
-    [91] = "RARRW",
+	[90] = "DARRW",
+	[91] = "RARRW",
 	[92] = "F1",
-    [93] = "F2",
-    [94] = "F3",
+	[93] = "F2",
+	[94] = "F3",
 	[95] = "F4", 
-    [96] = "F5",
-    [97] = "F6",
+	[96] = "F5",
+	[97] = "F6",
 	[98] = "F7", 
-    [99] = "F8",
-    [100] = "F9",
+	[99] = "F8",
+	[100] = "F9",
 	[101] = "F10", 
-    [102] = "F11",
-    [103] = "F12",
+	[102] = "F11",
+	[103] = "F12",
 	[104] = "CLOCKTGGL", 
-    [105] = "NLOCKTGGL",
-    [106] = "SLOCKTGGL",
+	[105] = "NLOCKTGGL",
+	[106] = "SLOCKTGGL",
 	[107] = "M1", 
-    [108] = "M2",
-    [109] = "M3",
+	[108] = "M2",
+	[109] = "M3",
 	[110] = "M4", 
-    [111] = "M5",
-    [112] = "MWUP",
+	[111] = "M5",
+	[112] = "MWUP",
 	[113] = "MWDN"
 }
 
 cvars.AddChangeCallback("cl_tfa_keys_firemode", function(convar_name, value_old, value_new)
-    print(convar_name, value_old, value_new)
+	print(convar_name, value_old, value_new)
 end)
 
 local scale = (ScrH() / 1080 * UserScale:GetFloat())
@@ -309,16 +309,16 @@ local CPPAltfireWeps = {
 }  
 
 local MWBaseFiremodes = {
-    ["AUTOMATIC"] = "FULL AUTO", 
-    ["SEMI AUTO"] = "SEMI AUTO",
+	["AUTOMATIC"] = "FULL AUTO", 
+	["SEMI AUTO"] = "SEMI AUTO",
 	["SEMI AUTOMATIC"] = "SEMI AUTO",
-    ["3RND BURST"] = "3-BURST"
+	["3RND BURST"] = "3-BURST"
 }
 
 local TFAFiremodes = {
-    ["Full-Auto"] = "FULL AUTO", 
-    ["Semi-Auto"] = "SEMI AUTO",
-    ["3 Round Burst"] = "3-BURST"
+	["Full-Auto"] = "FULL AUTO", 
+	["Semi-Auto"] = "SEMI AUTO",
+	["3 Round Burst"] = "3-BURST"
 }
 
 hook.Add("HUDShouldDraw", "hidefunnyshit", function(name)
@@ -415,7 +415,7 @@ cvars.AddChangeCallback("PKAmmoDisp_Scale", function()
 			PKAmmoDisp_InitFonts()
 			hook.Remove( "HUDPaint", "RescaleFonts" )
 		end )
-    else
+	else
 		PKAmmoDisp_InitFonts()
 	end
 end, "pkad_fontrescale")
@@ -1043,9 +1043,9 @@ local function PKAD_Draw()
 			surface.SetTextPos(scrw - 25.28 * scale - FiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
 			surface.DrawText(pkad_firemode_text)
 
-            surface.SetTextPos(scrw - 214.88 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
-            surface.SetTextColor(255,255,255,othertext.a)
-            surface.DrawText(firemodekey)
+			surface.SetTextPos(scrw - 214.88 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
+			surface.SetTextColor(255,255,255,othertext.a)
+			surface.DrawText(firemodekey)
 
 			--if !InstantAltfire then
 			--	surface.SetDrawColor(128,68,92,255)
@@ -1071,9 +1071,9 @@ local function PKAD_Draw()
 			surface.SetTextPos(scrw - 26.88 * scale - FiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
 			surface.DrawText(pkad_firemode_text)
 			
-            surface.SetTextPos(scrw - 218.88 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
-            surface.SetTextColor(255,255,255,othertext.a)
-            surface.DrawText(firemodekey)
+			surface.SetTextPos(scrw - 218.88 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
+			surface.SetTextColor(255,255,255,othertext.a)
+			surface.DrawText(firemodekey)
 		end
 
 		if HasAltFire and InstantAltfire then
