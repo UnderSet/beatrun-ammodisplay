@@ -1160,7 +1160,7 @@ local function PKAD_Draw()
 end
 
 local DispSegments = { -- Element alighment helpers, used while debugging
-"0",
+	"0",
 	"0.1",
 	"0.2",
 	"0.3",
