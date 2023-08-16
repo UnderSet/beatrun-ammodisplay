@@ -174,7 +174,8 @@ local function DrawBlurRect2(x, y, w, h, a)
 		surface.SetMaterial(blur)
 		
 		for i = 1, 2 do
-			blur:SetFloat("$blur", i / 3 * 5)
+			--blur:SetFloat("$blur", i / 3 * 5)
+			blur:SetFloat("$blur", i / 180 * 240)
 			blur:Recompute()
 			
 			render.UpdateScreenEffectTexture()
@@ -611,6 +612,7 @@ local function PKAD_Draw()
 	end
 	
 	pkad_firemode_text = "FULL AUTO"
+	WeaponJammed = false
 
 	-- This MESS acquires firemode. Because ARC9 and ArcCW is weird.
 	if isarc9 then -- Biggest blunder ever: forgor to change a9 to isarc9. bruh.
@@ -637,16 +639,8 @@ local function PKAD_Draw()
 			ActivePrimaryFire = false
 		end
 		
-		if Weapon:GetSafe() then
-			arc9safety = true
-		end
-		
-		if Weapon:GetInfiniteAmmo() then
-			arc9inf_reserve = true
-		end
-		
 		if Weapon:GetJammed() then
-			arc9jammed = true
+			WeaponJammed = true
 		end
 		
 		if Weapon:GetProcessedValue("Overheat", true) then
@@ -667,6 +661,10 @@ local function PKAD_Draw()
 		end
 
 		pkad_firemode_text = string.upper(pkad_firemode_text) 
+
+		if Weapon:GetMalfunctionJam() then
+			WeaponJammed = true
+		end
 	elseif ismgbase then
 		if !Weapon:GetSafety() then
 			pkad_firemode_text = string.upper(Weapon.Firemodes[Weapon:GetFiremode()].Name) -- Do we need two complicated tables for this?
@@ -998,6 +996,11 @@ local function PKAD_Draw()
 		ubglkey = ""
 	end
 	
+	if WeaponJammed then
+		pkad_firemode_text = "JAMMED"
+		firemodekey = ""
+	end
+
 	surface.SetFont("PKAD_SmallText")
 	local FiremodeW, FiremodeH = surface.GetTextSize(pkad_firemode_text)
 	local AltFiremodeW, AltFiremodeH = surface.GetTextSize(pkad_alt_firemode)
@@ -1040,6 +1043,9 @@ local function PKAD_Draw()
 			surface.DrawText(OverflowText)
 
 			surface.SetTextColor(AlternateAmmoColor)
+			if WeaponJammed then
+				surface.SetTextColor(255, 0, 0, text_color.a)
+			end
 			surface.SetFont("PKAD_SmallText")
 			surface.SetTextPos(scrw - 25.28 * scale - FiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
 			surface.DrawText(pkad_firemode_text)
@@ -1145,6 +1151,11 @@ local function PKAD_Draw()
 			surface.SetTextPos(scrw - 414.72 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
 			surface.DrawText(ubglkey)
 		end
+	end
+
+	if WeaponJammed and !hidden:GetBool() then
+		-- Testing out the draw library. I might rewrite quite some code after this.
+		draw.DrawText("WEAPON JAMMED", "PKAD_BigText", scrw * 0.5, scrh * 0.58, Color(255,0,0), TEXT_ALIGN_CENTER)
 	end
 end
 
