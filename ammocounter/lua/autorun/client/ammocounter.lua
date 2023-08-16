@@ -396,7 +396,7 @@ function PKAmmoDisp_InitFonts()
 		outline = false,
 		symbol = false,
 		weight = 250,
-		size = 15 * scale
+		size = 15 * (ScrH() / 1080)
 	})
 end
 
@@ -470,6 +470,7 @@ local function PKAD_Draw()
 	framerate = math.Round(math.Approach(framerate, math.ceil(1 / FrameTime()), FrameTime() * 10000))
 	
 	scale = (ScrH() / 1080 * UserScale:GetFloat())
+	truescale = (ScrH() / 1080)
 
 	local Weapon = ply:GetActiveWeapon()
 	local WeaponClass = nil
@@ -943,8 +944,8 @@ local function PKAD_Draw()
 	end
 	surface.SetFont("DebugTextScale")
 	local namew, nameh = surface.GetTextSize("Player: " .. playername .. brinfo)
-	surface.SetTextPos(scrw - 9 * scale - namew, 0 + 10 * scale)
-	PermaBlur(scrw - 15 * scale - namew, 0 + 6 * scale, namew + 10 * scale, 22 * scale, 255)
+	surface.SetTextPos(scrw - 9 * truescale - namew, 0 + 10 * truescale)
+	PermaBlur(scrw - 15 * truescale - namew, 0 + 6 * truescale, namew + 10 * truescale, 22 * truescale, 255)
 	if IsPlayingBeatrun then
 		surface.SetTextColor(218,218,218,255)
 	else
@@ -956,7 +957,7 @@ local function PKAD_Draw()
 		local text1 = HumanTime .. " | " .. DayOfWeek .. IRLmonth .. IRLday .. IRLyear -- Time display
 		surface.SetFont("DebugTextScale")
 		local txw, txh = surface.GetTextSize(text1)
-		surface.SetTextPos(scrw - 9 * scale - txw, 0 + 10 * scale + 22 * scale)
+		surface.SetTextPos(scrw - 9 * truescale - txw, 0 + 10 * truescale + 22 * truescale)
 		surface.SetTextColor(128,128,128,200)
 		surface.DrawText(text1)
 
@@ -968,7 +969,7 @@ local function PKAD_Draw()
 		end
 		surface.SetFont("DebugTextScale")
 		local tx2w, tx2h = surface.GetTextSize(text2)
-		surface.SetTextPos(scrw - 8 * scale - tx2w, 0 + 10 * scale + 40 * scale)
+		surface.SetTextPos(scrw - 8 * truescale - tx2w, 0 + 10 * truescale + 40 * truescale)
 		surface.SetTextColor(128,128,128,200)
 		surface.DrawText(text2)
 
@@ -979,7 +980,7 @@ local function PKAD_Draw()
 			text3 = ply:Ping() .. "ms to server on " .. game.GetIPAddress
 		end
 		local tx3w, tx3h = surface.GetTextSize(text3)
-		surface.SetTextPos(scrw - 8 * scale - tx3w, 0 + 10 * scale + 58 * scale)
+		surface.SetTextPos(scrw - 8 * truescale - tx3w, 0 + 10 * truescale + 58 * truescale)
 		surface.DrawText(text3)
 	end
 
