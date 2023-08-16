@@ -872,7 +872,7 @@ local function PKAD_Draw()
 		local VertArmorOffset = safezoney
 		if IsPlayingBeatrun then
 			if GetConVar("Beatrun_HUDHidden"):GetInt() != 2 then
-				BeatrunOffset = 94.499998390675 * scale
+				BeatrunOffset = 94.499998390675 * (ScrH() / 1080)
 				VertArmorOffset = math.Clamp(safezoney - 94.499998390675 * scale, 0, 32767)
 			elseif GetConVar("Beatrun_HUDHidden"):GetInt() == 2 then
 				BeatrunOffset = 0
