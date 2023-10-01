@@ -3,6 +3,7 @@
 -- Also yeah I should use a GLua linter.
 -- This rewrite is meant to make the code more readable than the original was as much as I can,
 -- and make it easier to work with. (also just 635 lines wow)
+
 local hidden = CreateClientConVar("PKAmmoDisp_Hidden", "0", true, false, "Blocks the ammo counter from rendering", 0, 2)
 local sway = CreateClientConVar("PKAmmoDisp_Sway", "1", true, false, "Display HUD swaying", 0, 1)
 local dynamic = CreateClientConVar("PKAmmoDisp_Dynamic", "0", true, false, "Hide HUD when moving (why the frick would you enable this?)", 0, 1)
@@ -291,7 +292,7 @@ function IsInputBound(bind) -- Renamed ARC9 function. Don't wanna cause conflict
 	local key = input.LookupBinding(bind)
 	
 	if !key then
-		return falsedddddddddd
+		return false
 	else
 		return true
 	end
