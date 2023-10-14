@@ -425,6 +425,7 @@ end, "pkad_fontrescale")
 local hidealpha = 0
 
 local function PKAD_Draw()
+	if CLIENT then return end
 	local usekey = string.upper(string.Replace(input.LookupBinding("+use", 1), "MOUSE", "M"))
 	local attack2 = string.upper(string.Replace(input.LookupBinding("+attack2", 1), "MOUSE", "M"))
 	local reloadkey = string.upper(string.Replace(input.LookupBinding("+reload", 1), "MOUSE", "M"))
@@ -667,15 +668,12 @@ local function PKAD_Draw()
 			WeaponJammed = true
 		end
 	elseif ismgbase then
-		if !Weapon:GetSafety() then
-			pkad_firemode_text = string.upper(Weapon.Firemodes[Weapon:GetFiremode()].Name) -- Do we need two complicated tables for this?
-			for k,v in pairs(MWBaseFiremodes) do
-				if k == pkad_firemode_text then
-					pkad_firemode_text = v
-				end
+		-- FIXME: Fix Safety detection for the dev build of MWBase and make it also work for the public build.
+		pkad_firemode_text = string.upper(Weapon.Firemodes[Weapon:GetFiremode()].Name) -- Do we need two complicated tables for this?
+		for k,v in pairs(MWBaseFiremodes) do
+			if k == pkad_firemode_text then
+				pkad_firemode_text = v
 			end
-		else
-			pkad_firemode_text = "SAFETY"
 		end
 	elseif istfabase then
 		pkad_firemode_text = Weapon:GetFireModeName() -- Do we need two complicated tables for this?
@@ -935,8 +933,7 @@ local function PKAD_Draw()
 			surface.DrawText(ply:Armor())
 		end
 	end
-
-	IsPlayingBeatrun = true -- Testing
+ 
 	local brinfo = ""
 	if IsPlayingBeatrun then
 		brinfo = " (" .. LocalPlayer():SteamID() .. " | Beatrun: " .. VERSIONGLOBAL .. ")"

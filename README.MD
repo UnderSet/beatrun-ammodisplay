@@ -1,10 +1,9 @@
 # beatrun-ammocounter
+*Development is at a halt due to a broken copy of Garry's Mod. Development should resume shortly.*
+
 My attempt at making an ammo display that works well with Beatrun. *Currently in rewrite, is kind of usable for now.*<br>If it doesn't show up, run the following command in the Developer Console: `lua_openscript_cl autorun\client\ammocounter.lua`
 
 *Now finally automatically loads by default!*
-
-> [!IMPORTANT]
-> Some weapons may register as a Modern Warfare Base weapon! This cannot be avoided with how the MW Base is programmed!
 
 **No, Spawnmenu options *won't* be added, even in the rewrite. Do not ask for it.**
 
@@ -14,8 +13,6 @@ My attempt at making an ammo display that works well with Beatrun. *Currently in
 - Primary ammo display, with viewpunch offset and firemode display
 - Secondary/alt-fire ammo display, with mag-style altfire support *(why does no other HUD support this properly?)*
 - Support for mag-less weapons
-- Armor display because Beatrun doesn't have one
-- ~~Optional speedometer, works outside of Beatrun too~~
 
 ## To be done
 Just check the Issues tab, will ya?
