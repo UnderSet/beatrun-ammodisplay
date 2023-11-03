@@ -596,8 +596,8 @@ function PKAD2_AmmoPanels()
 	local safezonex = scrw * deadzonex:GetFloat()
 	local safezoney = scrh * deadzoney:GetFloat()
 
-	local FiremodeW, FiremodeH = surface.GetTextSize(FiremodeText)
 	surface.SetFont("PKAD_SmallText")
+	local FiremodeW, FiremodeH = surface.GetTextSize(FiremodeText)
 	local AltFiremodeW, AltFiremodeH = surface.GetTextSize(AltFiremodeText)
 	
 	if IsValid(Weapon) and ply:IsValid() and ply:Alive() and Weapon:GetPrimaryAmmoType() != -1 and !hidden:GetBool() then
@@ -642,7 +642,7 @@ function PKAD2_AmmoPanels()
 				surface.SetTextColor(255, 0, 0, text_color.a)
 			end
 			surface.SetFont("PKAD_SmallText")
-			surface.SetTextPos(scrw - 20 * scale - FiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
+			surface.SetTextPos(scrw - 28 * scale - FiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
 			surface.DrawText(string.upper(FiremodeText))
 
 			--surface.SetTextPos(scrw - 214.88 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - --safezoney)
