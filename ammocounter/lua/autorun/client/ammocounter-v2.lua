@@ -177,6 +177,10 @@ local HasAltFire = false
 local FiremodeText = "Full-Auto"
 local AltFiremodeText = "Altfire"
 local ActivePrimaryFire = true
+local InstantAltfire = false
+
+local ubglkey = ""
+local firemodekey = ""
 
 local AmmoColor = nil
 local AlternateAmmoColor = nil 
@@ -377,10 +381,10 @@ function PKAD2_GetWeaponData()
 		else
 			HasAltFire = false
 		end
-		MagFillRatio = WepClip1 / WepReserve1
-		AltFillRatio = WepClip2 / WepReserve2
-		OverfillRatio = math.Clamp(Weapon:Clip1() - WepClip1, 0, 2147483647) / WepReserve1
-		AltOverfillRatio = math.Clamp(Weapon:Clip2() - WepClip2, 0, 2147483647) / WepReserve2
+		MagFillRatio = WepClip1 / WepMag1
+		AltFillRatio = WepClip2 / WepMag2
+		OverfillRatio = math.Clamp(Weapon:Clip1() - WepClip1, 0, 2147483647) / WepClip1
+		AltOverfillRatio = math.Clamp(Weapon:Clip2() - WepClip2, 0, 2147483647) / WepClip2
 	end
 end
 
@@ -399,6 +403,14 @@ function PKAD2_GetFiremode()
 	local isweparccw = Weapon.ArcCW
 	local istfabase = Weapon.IsTFAWeapon
 	ActivePrimaryFire = true
+
+	if Weapon:IsScripted() and WepMag2 == -1 then 
+		InstantAltfire = true
+	elseif !Weapon:IsScripted() then 
+		InstantAltfire = true
+	else
+		InstantAltfire = false
+	end
 
 	if string.match(tostring(WeaponClass), "mg_") and !isarc9 and !isweparccw then -- I have ZERO other fucking clue as to how to detect MW Base as it's barely documented.
 		ismgbase = true
@@ -496,6 +508,18 @@ function PKAD2_GetFiremode()
 	elseif !VanillaAutomatics[Weapon:GetClass()] then
 		FiremodeText = "Semi-Auto"
 	end
+
+	if !isarc9 and !Weapon.ArcCW then AltFiremodeText = "Altfire" end
+
+	if isarc9 and !IsInputBound("+arc9_ubgl") then
+		ubglkey = "[" .. usekey .."]+" .. "[" .. attack2 .. "]"
+	elseif isarc9 and IsInputBound("+arc9_ubgl") then
+		ubglkey = "[" .. string.upper(input.LookupBinding("+arc9_ubgl", 1)) .. "]"
+	elseif isweparccw and IsInputBound("arccw_toggle_ubgl") then
+		ubglkey = "[" .. string.upper(input.LookupBinding("arccw_toggle_ubgl", 1)) .. "]"
+	elseif isweparccw then
+		ubglkey = "[" .. usekey .."]+" .. "[" .. reloadkey .. "]"
+	end
 end
 
 function PKAD2_ColorManager()
@@ -549,7 +573,7 @@ function PKAD2_ColorManager()
 		ReserveColor = LowAmmoColor
 	end
 		
-	if WepClip2 < WepMag2 / 3 and !BottomlessMag and !InstantAltfire then
+	if (WepClip2 < WepMag2 / 3 and !BottomlessMag and !InstantAltfire) or ((WepReserve2 + math.Clamp(WepClip2, 0, 9999)) == 0) then
 		AltfireColor = AlternateLowAmmoColor
 		AltMagBarColor = ammolowcolor
 	elseif InstantAltfire then
@@ -581,6 +605,7 @@ function PKAD2_AmmoPanels()
 	local safezoney = scrh * deadzoney:GetFloat()
 
 	local FiremodeW, FiremodeH = surface.GetTextSize(FiremodeText)
+	surface.SetFont("PKAD_SmallText")
 	local AltFiremodeW, AltFiremodeH = surface.GetTextSize(AltFiremodeText)
 	
 	if IsValid(Weapon) and ply:IsValid() and ply:Alive() and Weapon:GetPrimaryAmmoType() != -1 and !hidden:GetBool() then
@@ -671,7 +696,7 @@ function PKAD2_AmmoPanels()
 			surface.SetFont("PKAD_HugeText")
 			local Reserve2H, Reserve2W = surface.GetTextSize((WepReserve2 + math.Clamp(WepClip2, 0, 9999)))
 			surface.SetTextPos(scrw - 268 * scale - Reserve2H + vp.z - safezonex, scrh - 108 * scale + vp.x - safezoney)
-			surface.SetTextColor(AltReserveColor)
+			surface.SetTextColor(AltfireColor)
 			surface.DrawText((WepReserve2 + math.Clamp(WepClip2, 0, 9999)))
 		
 			surface.SetDrawColor(AltMagBarColor)					
@@ -680,11 +705,11 @@ function PKAD2_AmmoPanels()
 			surface.SetTextColor(AmmoColor)
 			surface.SetFont("PKAD_SmallText")
 			surface.SetTextPos(scrw - 268 * scale - AltFiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
-			surface.DrawText(pkad_alt_firemode)
+			surface.DrawText(string.upper(AltFiremodeText))
 		
 			surface.SetTextColor(255,255,255,othertext.a)
 			surface.SetTextPos(scrw - 414.72 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
-			surface.DrawText(ubglkey)
+			surface.DrawText(string.upper(ubglkey))
 		elseif HasAltFire and !InstantAltfire then
 			surface.SetDrawColor(corner_color_c)
 			surface.DrawRect(scrw - 260.512 * scale + vp.z - safezonex, scrh - 113.4 * scale + vp.x - safezoney, 25 * scale, scale * 85)
@@ -723,11 +748,11 @@ function PKAD2_AmmoPanels()
 			surface.SetTextColor(AmmoColor)
 			surface.SetFont("PKAD_SmallText")
 			surface.SetTextPos(scrw - 268 * scale - AltFiremodeW + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
-			surface.DrawText(pkad_alt_firemode)
+			surface.DrawText(string.upper(AltFiremodeText))
 		
 			surface.SetTextColor(255,255,255,othertext.a)
 			surface.SetTextPos(scrw - 414.72 * scale + vp.z - safezonex, scrh - 54 * scale + vp.x - safezoney)
-			surface.DrawText(ubglkey)
+			surface.DrawText(string.upper(ubglkey))
 		end
 	end
 end
