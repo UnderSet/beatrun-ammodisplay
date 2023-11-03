@@ -388,14 +388,6 @@ function PKAD2_GetWeaponData()
 	end
 end
 
-function PKAD2_DebugInfoHUD()
-	if !IsValid(Weapon) then return end
-	surface.SetFont("PKAD_BigText")
-	local txtw, txth = surface.GetTextSize(Weapon:Clip1() .. "|" .. Weapon:Clip2() .. "|" .. WepMag1 .. "|" .. WepMag2 .. "|" .. WepReserve1 .. "|" .. WepReserve2)
-	DrawBlurRect2(ScrW() * 0.5 - (txtw / 2 * 1.25), ScrH() * 0.55 - (txth * 0.25), txtw * 1.25, txth * 1.25, 255, 40)
-	draw.DrawText(Weapon:Clip1() .. "|" .. Weapon:Clip2() .. "|" .. WepMag1 .. "|" .. WepMag2 .. "|" .. WepReserve1 .. "|" .. WepReserve2, "PKAD_BigText", ScrW() * 0.5, ScrH() * 0.55, Color(255,255,255), TEXT_ALIGN_CENTER)
-end
-
 function PKAD2_GetFiremode()
 	local ismgbase = false
 	local isarc9 = Weapon.ARC9
@@ -769,11 +761,6 @@ hook.Add("OnScreenSizeChanged", "PKAD2_RecreateFonts", function()
 
 	scrw = ScrW()
 	scrh = ScrH()
-end)
-
-hook.Add("HUDPaint", "PKAD2_DrawDebug", function()
-	PKAD2_GetWeaponData()
-	PKAD2_DebugInfoHUD()
 end)
 
 hook.Add("HUDPaint", "PKAD2_Draw", function()
